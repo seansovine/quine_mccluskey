@@ -38,16 +38,24 @@ So, for example, the cards in a set might all have the same shape,
 all have different colors, all have different textures, and
 all have the same number of objects.
 
-## This program:
-
-Randomly draws 15 cards (†) from the Set deck, and then finds all
-_sets_ (by the game's definition) contained in those cards.
+## The algorithm:
 
 The approach here is to first choose all candidate sets of 3 cards based on
 a single attribute (color is arbitrarily chosen here), and then
 to check if each candidate has all attributes the same or all different
 in each other dimension, in which case it is considered a valid "set"
 according to the game's definition.
+
+The game has a relatively small search space, so the approach here works fine
+as long as it's implemented with reasonable efficiency. My experience as a 
+human player is that I find sets through a combination of scanning the table
+until my mind notices a pattern intuitively, probably based on some heuristics,
+and a more systematic approach as is used in this program.
+
+## This program:
+
+Randomly draws 15 cards (†) from the Set deck, and then finds all
+_sets_ (by the game's definition) contained in those cards.
 
 † `CARDS_ON_TABLE` is set to 15 in `find_set.cpp`, but can be any value between
 0 and 3 \* 3 \* 3 \* 3. The normal Set game uses 12 cards, unless there is
