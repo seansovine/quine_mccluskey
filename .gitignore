@@ -1,5 +1,4 @@
 # Conventional build file directories.
-bin/
 build/
 target/
 
