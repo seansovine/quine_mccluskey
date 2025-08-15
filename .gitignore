@@ -1,9 +1,11 @@
 # Conventional build file directories.
 bin/
 build/
+target/
 
 .vscode
 
 # CLion config and build files.
 .idea
 cmake-build-*/
+
