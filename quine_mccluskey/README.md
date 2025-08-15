@@ -26,3 +26,40 @@ Equivalent expression from prime implicants:
 A minimal equivalent expression:
   (C)
 ```
+
+## Usage example:
+
+This example of the API usage is from `bin/qm.rs`:
+
+```rust
+use logic_minimization::*;
+
+fn main() {
+  let minterms: Vec<Minterm> = vec![
+    "01x".into(), // !C & B
+    "11x".into(), //  C & B
+    "x01".into(), // !B & A
+    "x00".into(), // !B & !A
+    "1xx".into(), //  C
+  ];
+  // Function to simplify: (!C & B) | (C & B) | (!B & A) | (!B & !A) | C.
+
+  println!(
+    "Initial expression:\n  {}",
+    string_for_sop_minterms(&minterms, false)
+  );
+
+  let prime_impls: Vec<Minterm> = get_prime_implicants(&minterms).into_iter().collect();
+  println!(
+    "Equivalent expression from prime implicants:\n  {}",
+    string_for_sop_minterms(&prime_impls, false)
+  );
+
+  let prime_impl_chart = create_prime_implicant_chart(&prime_impls, &minterms);
+  let minimal_sops = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
+  println!(
+    "A minimal equivalent expression:\n  {}",
+    string_for_sop_minterms(&minimal_sops, true)
+  );
+}
+```

@@ -62,7 +62,7 @@ fn string_for_minterm(minterm: &Minterm) -> String {
 }
 
 /// Get a string representation for the SOP with minterm set `minterms`.
-pub fn string_for_minterms(minterms: &[Minterm], omit_trivial: bool) -> String {
+pub fn string_for_sop_minterms(minterms: &[Minterm], omit_trivial: bool) -> String {
   if minterms.is_empty() {
     return "False".into();
   }
