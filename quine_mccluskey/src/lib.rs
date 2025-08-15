@@ -54,22 +54,37 @@ fn string_for_minterm(minterm: &Minterm) -> String {
     }
   }
 
-  term_string
+  if term_string.is_empty() {
+    "True".into()
+  } else {
+    term_string
+  }
 }
 
 /// Get a string representation for the SOP with minterm set `minterms`.
-pub fn string_for_minterms(minterms: &[Minterm]) -> String {
+pub fn string_for_minterms(minterms: &[Minterm], omit_trivial: bool) -> String {
+  if minterms.is_empty() {
+    return "False".into();
+  }
+
   let mut expr_string = String::new();
   for (i, minterm) in minterms.iter().enumerate() {
     let term_string = string_for_minterm(minterm);
-    if i == 0 {
+    if term_string == "True" && omit_trivial {
+      continue;
+    }
+    if expr_string.is_empty() {
       expr_string = format!("({term_string})");
     } else {
       expr_string = format!("{expr_string} | ({term_string})");
     }
   }
 
-  expr_string
+  if expr_string.is_empty() {
+    "True".into()
+  } else {
+    expr_string
+  }
 }
 
 // Compute prime implicants from implicants.
