@@ -1,4 +1,7 @@
 // Implement Petrick's method to get min-SOPs.
+//
+// THe discussion here was helpful in understanding how to implement this:
+//   https://math.stackexchange.com/a/4992057/198658
 
 use super::{Minterm, PrimeImplicateChart};
 use std::cmp::Ordering;
@@ -6,8 +9,7 @@ use std::cmp::Ordering;
 // Bit vector data structure for simplifying prime implicant table.
 
 /// Bit vector representing a set of essential prime implicants.
-///
-/// **Note:** For now we support up to 64 bits; this could be extended.
+/// For use in applying Petrick's method to a prime implicant chart.
 ///
 #[derive(Clone, Copy, Default)]
 struct BitVec {
@@ -61,14 +63,13 @@ impl BitVec {
 
 impl BitVec {
   pub fn bitvecs_from_chart_col(prime_impl_chart: &PrimeImplicateChart, col: usize) -> Vec<Self> {
-    let mut bit_vecs = vec![];
     let rows = &prime_impl_chart.rows;
-
     if rows.is_empty() {
-      return bit_vecs;
+      return Default::default();
     }
     assert!(rows.first().unwrap().len() > col);
 
+    let mut bit_vecs = vec![];
     for (i, row) in rows.iter().enumerate() {
       if row[col] {
         let mut bit_vec = BitVec::default();
@@ -110,7 +111,6 @@ pub fn get_minimal_sops(
   assert!(prime_impl_chart.rows.first().unwrap().len() <= 64);
 
   // Remove essential prime implicants from chart.
-
   let (mut min_expr_terms, remaining_cols) =
     remove_essential_prime_impls(&mut prime_impl_chart, &mut prime_impls);
   if remaining_cols.is_empty() {
@@ -119,10 +119,8 @@ pub fn get_minimal_sops(
   }
 
   // Simplify remaining terms with boolean logic rules.
-
   let first_remaining_col = *remaining_cols.first().unwrap();
   let mut current_bitvecs: Vec<BitVec> = vec![BitVec::default()];
-
   for rem_col_i in remaining_cols.iter().copied() {
     let next_col_bitvecs = BitVec::bitvecs_from_chart_col(&prime_impl_chart, rem_col_i);
     if !next_col_bitvecs.is_empty() {
@@ -140,7 +138,12 @@ pub fn get_minimal_sops(
   min_expr_terms
 }
 
-/// Computes the logical 'and' between
+/// Computes the logical 'and' to build up a set of prime implicants
+/// covering all the columns of a prime implicant table.
+///
+/// **Note:** The actual bitwise operation performed on bit vectors is
+/// the logical 'or', because a bit vector is interpreted as the 'and'
+/// of the terms corresponding to its nonzero digits.
 ///
 fn pairwise_and(current_bitvecs: &[BitVec], next_col_bitvecs: &[BitVec]) -> Vec<BitVec> {
   let mut merged_bitvecs = vec![];
@@ -160,11 +163,10 @@ fn pairwise_and(current_bitvecs: &[BitVec], next_col_bitvecs: &[BitVec]) -> Vec<
 /// As a side efecct, sorts reduced `bitvecs`.
 ///
 fn remove_redundant(bitvecs: &mut Vec<BitVec>) {
-  // Bit vecs to remove at end.
-  let mut to_remove = vec![false; bitvecs.len()];
   // Sort so that vecs with fewer bits are first.
   BitVec::bitsort(bitvecs);
-
+  // Bit vecs to remove at end.
+  let mut to_remove = vec![false; bitvecs.len()];
   // Find redundant bitvecs.
   for i in 0..bitvecs.len() - 1 {
     for j in i + 1..bitvecs.len() {
@@ -202,9 +204,6 @@ fn remove_essential_prime_impls(
 ) -> (Vec<Minterm>, Vec<usize>) {
   assert!(prime_impls.len() == prime_impl_chart.rows.len());
 
-  // Indexed the same as prime_impls.
-  let mut ess_prime_impls_i = vec![false; prime_impls.len()];
-
   // If only one row (prime implicant) covers the minterm of a column,
   // the entry for that column holds that row index; else it holds None.
   let mut remove_cols: Vec<RowCount> =
@@ -223,6 +222,8 @@ fn remove_essential_prime_impls(
     }
   }
 
+  // Indexed the same as prime_impls.
+  let mut ess_prime_impls_i = vec![false; prime_impls.len()];
   // Mark essential prime implicants and get columns that are kept.
   let mut remaining_cols = vec![];
   for (i, val) in remove_cols.iter().enumerate() {

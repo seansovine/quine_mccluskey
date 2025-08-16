@@ -1,9 +1,11 @@
-# Basic Rust Quine-McCluskey Implementation.
+# Rust Quine-McCluskey
 
 This is a basic Rust implementation of the [Quine-McCluskey](https://en.wikipedia.org/wiki/Petrick%27s_method)
 algorithm for simplifying sum-of-products logic expressions.
-This version supports expressions in at most 6 variables, but the
-implementation could be adapted to handle more variables.
+This version supports expressions in at most 6 variables, but
+could be adapted to handle more variables. There are several other
+crates available with good implementations of Quine-McCluskey, but
+implementing it from scratch was fun and a good learning experience.
 
 __Example 1:__
 
@@ -35,15 +37,14 @@ This example of the API usage is from `bin/qm.rs`:
 use logic_minimization::*;
 
 fn main() {
+  // Function to simplify: (!C & B) | (C & B) | (!B & A) | (!B & !A) | C.
   let minterms: Vec<Minterm> = vec![
-    "01x".into(), // !C & B
-    "11x".into(), //  C & B
-    "x01".into(), // !B & A
+    "01x".into(), // !C &  B
+    "11x".into(), //  C &  B
+    "x01".into(), // !B &  A
     "x00".into(), // !B & !A
     "1xx".into(), //  C
   ];
-  // Function to simplify: (!C & B) | (C & B) | (!B & A) | (!B & !A) | C.
-
   println!(
     "Initial expression:\n  {}",
     string_for_sop_minterms(&minterms, false)
