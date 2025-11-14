@@ -1,42 +1,13 @@
+#![allow(unused)]
+
 use logic_minimization::*;
 
 fn main() {
     // A few examples for testing.
 
-    let minterms: Vec<Minterm> = vec![
-        "01x".into(), // !C & B
-        "11x".into(), //  C & B
-        "x01".into(), // !B & A
-        "x00".into(), // !B & !A
-        "1xx".into(), //  C
-    ];
-
-    // let minterms: Vec<Minterm> = vec![
-    //   "000".into(), // A'B'C'
-    //   "100".into(), // A'B'C
-    //   "010".into(), // A'BC'
-    //   "101".into(), // AB'C
-    //   "011".into(), // ABC'
-    //   "111".into(), // ABC
-    // ];
-
-    // let minterms: Vec<Minterm> = vec![
-    //   "0100".into(), // m4
-    //   "1000".into(), // m8
-    //   "1001".into(), // (m9)
-    //   "1010".into(), // m10
-    //   "1011".into(), // m11
-    //   "1100".into(), // m12
-    //   "1110".into(), // (m14)
-    //   "1111".into(), // m15
-    // ];
-
-    // let minterms: Vec<Minterm> = vec![
-    //   "100000".into(), //
-    //   "000000".into(), //
-    //   "000010".into(), //
-    //   "000011".into(), //
-    // ];
+    const TEST_INIT_STR: &str = "0000F0F0000000FF";
+    let term_strings = binary_strings_from_init_hex(TEST_INIT_STR);
+    let minterms: Vec<Minterm> = term_strings.iter().map(|s| (&**s).into()).collect();
 
     println!(
         "Initial expression:\n  {}",
@@ -55,4 +26,51 @@ fn main() {
         "A minimal equivalent expression:\n  {}",
         string_for_sop_minterms(&minimal_sops, true)
     );
+}
+
+fn test_case_a() -> Vec<Minterm> {
+    let minterms: Vec<Minterm> = vec![
+        "01x".into(), // !C & B
+        "11x".into(), //  C & B
+        "x01".into(), // !B & A
+        "x00".into(), // !B & !A
+        "1xx".into(), //  C
+    ];
+    minterms
+}
+
+fn test_case_b() -> Vec<Minterm> {
+    let minterms: Vec<Minterm> = vec![
+        "000".into(), // A'B'C'
+        "100".into(), // A'B'C
+        "010".into(), // A'BC'
+        "101".into(), // AB'C
+        "011".into(), // ABC'
+        "111".into(), // ABC
+    ];
+    minterms
+}
+
+fn test_case_c() -> Vec<Minterm> {
+    let minterms: Vec<Minterm> = vec![
+        "0100".into(), // m4
+        "1000".into(), // m8
+        "1001".into(), // (m9)
+        "1010".into(), // m10
+        "1011".into(), // m11
+        "1100".into(), // m12
+        "1110".into(), // (m14)
+        "1111".into(), // m15
+    ];
+    minterms
+}
+
+fn test_case_d() -> Vec<Minterm> {
+    let minterms: Vec<Minterm> = vec![
+        "100000".into(), //
+        "000000".into(), //
+        "000010".into(), //
+        "000011".into(), //
+    ];
+    minterms
 }

@@ -6,6 +6,25 @@ pub mod petrick;
 
 use std::collections::HashSet;
 
+// Conversion functions.
+
+pub fn binary_strings_from_init_hex(hex_str: &str) -> Vec<String> {
+    let mut strings = vec![];
+    let num: u64 =
+        u64::from_str_radix(hex_str, 16).expect("String is not a valid 64-bit hex string.");
+    println!("{num:064b}");
+    for i in 0..64 {
+        let mask: u64 = 1 << i;
+        if mask & num > 0 {
+            println!("{i:02}: {i:06b}");
+            strings.push(format!("{i:06b}"));
+        }
+    }
+    strings
+}
+
+// Minterm structure.
+
 #[derive(Hash, Clone, PartialEq, Eq)]
 pub struct Minterm {
     values: Vec<u8>,
