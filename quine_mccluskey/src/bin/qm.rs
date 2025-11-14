@@ -1,32 +1,42 @@
 #![allow(unused)]
 
+use std::error::Error;
+
 use logic_minimization::*;
 
-fn main() {
-    // A few examples for testing.
+fn main() -> Result<(), Box<dyn Error>> {
+    const TEST_INIT_STR_1: &str = "0000F0F0000000FF";
+    // Should simplify to (B & !C & !D & !E & !F).
+    const TEST_INIT_STR_2: &str = "000000000000000C";
+    // Should zero-pad to same as previous.
+    const TEST_INIT_STR_3: &str = "C";
 
-    const TEST_INIT_STR: &str = "0000F0F0000000FF";
-    let term_strings = binary_strings_from_init_hex(TEST_INIT_STR);
+    // Convert hex init string to minterms for simplification.
+    let term_strings = binary_strings_from_init_hex(TEST_INIT_STR_3)?;
     let minterms: Vec<Minterm> = term_strings.iter().map(|s| (&**s).into()).collect();
 
     println!(
-        "Initial expression:\n  {}",
-        string_for_sop_minterms(&minterms, false)
+        "Initial expression:\n    {}",
+        string_for_sop_minterms(&minterms, false, Some("\n  "))
     );
 
     let prime_impls: Vec<Minterm> = get_prime_implicants(&minterms).into_iter().collect();
     println!(
         "Equivalent expression from prime implicants:\n  {}",
-        string_for_sop_minterms(&prime_impls, false)
+        string_for_sop_minterms(&prime_impls, false, Some(" "))
     );
 
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, &minterms);
     let minimal_sops = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
     println!(
         "A minimal equivalent expression:\n  {}",
-        string_for_sop_minterms(&minimal_sops, true)
+        string_for_sop_minterms(&minimal_sops, true, Some(" "))
     );
+
+    Ok(())
 }
+
+// A few examples for testing.
 
 fn test_case_a() -> Vec<Minterm> {
     let minterms: Vec<Minterm> = vec![
