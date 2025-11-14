@@ -1,19 +1,28 @@
 #![allow(unused)]
 
+use clap::{Arg, Command};
 use std::error::Error;
 
 use logic_minimization::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    const TEST_INIT_STR_1: &str = "0000F0F0000000FF";
-    // Should simplify to (B & !C & !D & !E & !F).
-    const TEST_INIT_STR_2: &str = "000000000000000C";
-    // Should zero-pad to same as previous.
-    const TEST_INIT_STR_3: &str = "C";
+    let matches = Command::new("Quine-McCluskey")
+        .arg(
+            Arg::new("init")
+                .short('i')
+                .long("init")
+                .help("Optional init string; up to 16 hex chars."),
+        )
+        .get_matches();
 
-    // Convert hex init string to minterms for simplification.
-    let term_strings = binary_strings_from_init_hex(TEST_INIT_STR_3)?;
-    let minterms: Vec<Minterm> = term_strings.iter().map(|s| (&**s).into()).collect();
+    let minterms;
+    if let Some(init) = matches.get_one::<String>("init") {
+        // Convert hex init string to minterms for simplification.
+        let term_strings = binary_strings_from_init_hex(init)?;
+        minterms = term_strings.iter().map(|s| (&**s).into()).collect()
+    } else {
+        minterms = test_case_hex()?;
+    }
 
     println!(
         "Initial expression:\n    {}",
@@ -37,6 +46,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 // A few examples for testing.
+
+fn test_case_hex() -> Result<Vec<Minterm>, Box<dyn Error>> {
+    // Should simplify to (!A & B & !C & !D & !E) | (!A & B & F).
+    const TEST_INIT_STR_1: &str = "A00AA00A50055005";
+    // Should simplify to (B & !C & !D & !E & !F).
+    const TEST_INIT_STR_2: &str = "000000000000000C";
+    // Should zero-pad to same as previous.
+    const TEST_INIT_STR_3: &str = "C";
+
+    // Convert hex init string to minterms for simplification.
+    let term_strings = binary_strings_from_init_hex(TEST_INIT_STR_1)?;
+    let minterms = term_strings.iter().map(|s| (&**s).into()).collect();
+    Ok(minterms)
+}
 
 fn test_case_a() -> Vec<Minterm> {
     let minterms: Vec<Minterm> = vec![
