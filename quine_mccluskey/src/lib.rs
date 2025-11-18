@@ -38,6 +38,27 @@ pub fn binary_strings_from_init_hex(hex_str: &str) -> Result<Vec<String>, Box<dy
     Ok(strings)
 }
 
+// Sort minterms nicely for canonical display.
+
+pub fn display_sort_minterms(minterms: &mut [Minterm]) {
+    if minterms.is_empty() {
+        return;
+    }
+    assert!(minterms.first().unwrap().values.len() == 6);
+    minterms.sort_by_key(|m| {
+        let mut tuple = [2_u8; 6];
+        for (i, val) in m.values.iter().rev().enumerate() {
+            match val {
+                b'1' => tuple[i] = 0,
+                b'0' => tuple[i] = 1,
+                b'x' => tuple[i] = 2,
+                _ => unreachable!(),
+            }
+        }
+        tuple
+    });
+}
+
 // Top-level API functions.
 
 pub fn qm_simplify(minterms: &[Minterm]) -> String {
@@ -211,7 +232,6 @@ impl std::fmt::Debug for PrimeImplicateChart {
             let row_bytes: Vec<_> = row.iter().map(|v| if *v { b'1' } else { b'0' }).collect();
             writeln!(f, "{}", String::from_utf8_lossy(&row_bytes))?;
         }
-
         Ok(())
     }
 }
@@ -241,7 +261,6 @@ fn check_match(minterm_1: &Minterm, minterm_2: &Minterm) -> bool {
             return false;
         }
     }
-
     true
 }
 
