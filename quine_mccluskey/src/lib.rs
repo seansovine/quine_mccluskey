@@ -2,13 +2,14 @@
 
 #![allow(unused)]
 
+pub mod check;
 pub mod petrick;
 
 use std::{collections::HashSet, error::Error};
 
 // Conversion functions.
 
-const DEV_DEBUG: bool = true;
+const DEV_DEBUG: bool = false;
 
 /// Convert a hex "init" string to a list of binary term strings.
 pub fn binary_strings_from_init_hex(hex_str: &str) -> Result<Vec<String>, Box<dyn Error>> {
@@ -34,8 +35,25 @@ pub fn binary_strings_from_init_hex(hex_str: &str) -> Result<Vec<String>, Box<dy
             strings.push(format!("{i:06b}"));
         }
     }
-
     Ok(strings)
+}
+
+// Top-level API functions.
+
+pub fn qm_simplify(minterms: &[Minterm]) -> String {
+    let prime_impls: Vec<Minterm> = get_prime_implicants(minterms).into_iter().collect();
+    let prime_impl_chart = create_prime_implicant_chart(&prime_impls, minterms);
+    let minimal_sops = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
+    string_for_sop_minterms(&minimal_sops, true, Some(" "))
+}
+
+pub fn qm_simplify_init(init_str: &str) -> Result<String, Box<dyn Error>> {
+    let term_strings = binary_strings_from_init_hex(init_str)?;
+    let minterms = term_strings
+        .iter()
+        .map(|s| (&**s).into())
+        .collect::<Vec<_>>();
+    Ok(qm_simplify(&minterms))
 }
 
 // Minterm structure.
@@ -49,7 +67,6 @@ impl Minterm {
     pub fn merge(&self, other: &Minterm, first_diff: usize) -> Minterm {
         let mut outterm = other.clone();
         outterm.values[first_diff] = b'x';
-
         outterm
     }
 }
@@ -70,7 +87,7 @@ impl From<&str> for Minterm {
 
 const EQN_VARS: &[char] = &['A', 'B', 'C', 'D', 'E', 'F'];
 
-fn string_for_minterm(minterm: &Minterm) -> String {
+pub fn string_for_minterm(minterm: &Minterm) -> String {
     let mut term_string = String::new();
     for (i, c) in minterm.values.iter().rev().enumerate() {
         let var = match c {
