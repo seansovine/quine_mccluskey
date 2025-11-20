@@ -26,7 +26,7 @@ fn main() {
 
 fn timed_qm(init_str: &str) -> (String, u128) {
     let start_time = Instant::now();
-    let sop_string = qm_simplify_init(init_str).expect("Init conversion failed.");
+    let (sop_string, _time) = qm_simplify_init(init_str).expect("Init conversion failed.");
     let elapsed = start_time.elapsed().as_millis();
     (sop_string, elapsed)
 }

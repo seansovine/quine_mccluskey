@@ -4,7 +4,12 @@
 //   https://math.stackexchange.com/a/4992057/198658
 
 use super::{Minterm, PrimeImplicateChart};
-use std::cmp::Ordering;
+
+use std::{
+    cmp::Ordering,
+    fmt::Write,
+    time::{Duration, Instant},
+};
 
 // Bit vector data structure for simplifying prime implicant chart.
 
@@ -60,10 +65,19 @@ impl BitVec {
 
         nonzero_indices
     }
+
+    pub fn is_subset(&self, other: &BitVec) -> bool {
+        self.bits & other.bits == self.bits
+    }
 }
 
 impl BitVec {
-    pub fn bitvecs_from_chart_col(prime_impl_chart: &PrimeImplicateChart, col: usize) -> Vec<Self> {
+    pub fn bitvecs_from_chart_col(
+        prime_impl_chart: &PrimeImplicateChart,
+        col: usize,
+        time: &mut TimeInfo,
+    ) -> Vec<Self> {
+        let start = Instant::now();
         let rows = &prime_impl_chart.rows;
         if rows.is_empty() {
             return Default::default();
@@ -78,11 +92,12 @@ impl BitVec {
                 bit_vecs.push(bit_vec);
             }
         }
+        time.bitvecs_from_chart_cols += start.elapsed();
 
         bit_vecs
     }
 
-    pub fn bitsort(bitvecs: &mut [BitVec]) {
+    pub fn bitsort(bitvecs: &mut [BitVec]) -> Vec<(u32, usize)> {
         bitvecs.sort_by(|a, b| {
             if (a.count_ones()) < (b.count_ones()) {
                 return Ordering::Less;
@@ -93,17 +108,92 @@ impl BitVec {
             // Same # of 1-bits.
             a.bits.cmp(&b.bits)
         });
+        // (# ones, starting position of bitvecs with this # ones)
+        let mut ones_group_start: Vec<(u32, usize)> = vec![];
+        for (i, bv) in bitvecs.iter().enumerate() {
+            let bv_ones = bv.count_ones();
+            if ones_group_start.is_empty() || ones_group_start.last().unwrap().0 != bv_ones {
+                ones_group_start.push((bv_ones, i));
+            }
+        }
+        ones_group_start
     }
 }
 
 // Functions to perform Petrick's method to simplify prime implicants chart.
+
+#[derive(Default)]
+pub struct TimeInfo {
+    pub remove_essential_prime_impls: Duration,
+    pub bitvecs_from_chart_cols: Duration,
+
+    pub remove_redundant: Duration,
+    pub remove_redundant_first_loop: Duration,
+
+    pub first_loop: Duration,
+    pub second_loop: Duration,
+
+    pub pairwise_and_calls: u64,
+    pub pairwise_and: Duration,
+}
+
+impl TimeInfo {
+    pub fn format_me(&self) -> String {
+        let mut message = String::new();
+        writeln!(message, "Petrick run time:");
+        writeln!(
+            message,
+            "-- remove_essential_prime_impls: {:>5} ms",
+            self.remove_essential_prime_impls.as_millis()
+        );
+        writeln!(
+            message,
+            "-- bitvecs_from_chart_cols:      {:>5} ms",
+            self.bitvecs_from_chart_cols.as_millis()
+        );
+        writeln!(message);
+        writeln!(
+            message,
+            "-- remove_redundant:             {:>5} ms",
+            self.remove_redundant.as_millis()
+        );
+        writeln!(
+            message,
+            "-- remove_redundant first loop:  {:>5} ms",
+            self.remove_redundant_first_loop.as_millis()
+        );
+        writeln!(message);
+        writeln!(
+            message,
+            "-- first loop:                   {:>5} ms",
+            self.first_loop.as_millis()
+        );
+        writeln!(
+            message,
+            "-- second loop:                  {:>5} ms",
+            self.second_loop.as_millis()
+        );
+        writeln!(message);
+        writeln!(
+            message,
+            "-- pairwise_and calls:           {:>5} ",
+            self.pairwise_and_calls
+        );
+        write!(
+            message,
+            "-- pairwise_and:                 {:>5} ms",
+            self.pairwise_and.as_millis()
+        );
+        message
+    }
+}
 
 /// Get a minimal set of prime implicants for an equivalent expression.
 ///
 pub fn get_minimal_sops(
     mut prime_impl_chart: PrimeImplicateChart,
     mut prime_impls: Vec<Minterm>,
-) -> Vec<Minterm> {
+) -> (Vec<Minterm>, TimeInfo) {
     if prime_impl_chart.rows.is_empty() || prime_impl_chart.rows.first().unwrap().is_empty() {
         // Ok to panic here because this condition indicates programmer error.
         panic!("Prime implicant chart has either no rows or no columns.");
@@ -112,32 +202,43 @@ pub fn get_minimal_sops(
     assert!(prime_impls.len() == prime_impl_chart.rows.len());
     assert!(prime_impl_chart.rows.first().unwrap().len() <= 64);
 
+    let mut time = TimeInfo::default();
+
     // Remove essential prime implicants from chart.
     let (mut min_expr_terms, remaining_cols) =
-        remove_essential_prime_impls(&mut prime_impl_chart, &mut prime_impls);
+        remove_essential_prime_impls(&mut prime_impl_chart, &mut prime_impls, &mut time);
     if remaining_cols.is_empty() {
         // Indicates all prime impls were essential, so we're done.
-        return min_expr_terms;
+        return (min_expr_terms, time);
     }
 
     // Simplify remaining terms with boolean logic rules.
     let first_remaining_col = *remaining_cols.first().unwrap();
     let mut current_bitvecs: Vec<BitVec> = vec![BitVec::default()];
-    for rem_col_i in remaining_cols.iter().copied() {
-        let next_col_bitvecs = BitVec::bitvecs_from_chart_col(&prime_impl_chart, rem_col_i);
-        if !next_col_bitvecs.is_empty() {
-            current_bitvecs = pairwise_and(&current_bitvecs, &next_col_bitvecs);
+    let col_bitvecs = remaining_cols
+        .into_iter()
+        .map(|rem_col_i| BitVec::bitvecs_from_chart_col(&prime_impl_chart, rem_col_i, &mut time))
+        .filter(|vecs| !vecs.is_empty())
+        .collect::<Vec<_>>();
+    let start = Instant::now();
+    for (i, next_col_bitvecs) in col_bitvecs.iter().enumerate() {
+        time.pairwise_and_calls += 1;
+        current_bitvecs = pairwise_and(&current_bitvecs, next_col_bitvecs, &mut time);
+        if i < col_bitvecs.len() - 1 {
+            remove_redundant(&mut current_bitvecs, &mut time);
         }
-        remove_redundant(&mut current_bitvecs);
     }
+    time.first_loop += start.elapsed();
 
-    BitVec::bitsort(&mut current_bitvecs);
+    let start = Instant::now();
+    let _ = BitVec::bitsort(&mut current_bitvecs);
     let chosen_min_bitvec = current_bitvecs.first().unwrap();
     for i in chosen_min_bitvec.nonzero_indices() {
         min_expr_terms.push(prime_impls.get(i).unwrap().clone());
     }
+    time.second_loop += start.elapsed();
 
-    min_expr_terms
+    (min_expr_terms, time)
 }
 
 /// Computes the logical 'and' to build up a set of prime implicants
@@ -147,7 +248,12 @@ pub fn get_minimal_sops(
 /// the logical 'or', because a bit vector is interpreted as the 'and'
 /// of the terms corresponding to its nonzero digits.
 ///
-fn pairwise_and(current_bitvecs: &[BitVec], next_col_bitvecs: &[BitVec]) -> Vec<BitVec> {
+fn pairwise_and(
+    current_bitvecs: &[BitVec],
+    next_col_bitvecs: &[BitVec],
+    time: &mut TimeInfo,
+) -> Vec<BitVec> {
+    let start = Instant::now();
     let mut merged_bitvecs = vec![];
     for c_bitvec in current_bitvecs {
         for n_bitvec in next_col_bitvecs {
@@ -157,32 +263,53 @@ fn pairwise_and(current_bitvecs: &[BitVec], next_col_bitvecs: &[BitVec]) -> Vec<
         }
     }
     merged_bitvecs.dedup();
+    time.pairwise_and += start.elapsed();
 
     merged_bitvecs
 }
 
+const DEV_DEBUG: bool = false;
+
 /// Remove bitvecs that are subsumed by others in the set.
 /// As a side effect, sorts reduced `bitvecs`.
 ///
-fn remove_redundant(bitvecs: &mut Vec<BitVec>) {
+fn remove_redundant(bitvecs: &mut Vec<BitVec>, time: &mut TimeInfo) {
+    if bitvecs.is_empty() {
+        return;
+    }
+    let start = Instant::now();
     // Sort so that vecs with fewer bits are first.
-    BitVec::bitsort(bitvecs);
+    let ones_group_start = BitVec::bitsort(bitvecs);
+    bitvecs.dedup();
+    let ones_group_start = BitVec::bitsort(bitvecs);
+    if DEV_DEBUG {
+        println!("{ones_group_start:?} - {}", bitvecs.len());
+    }
+
     // Bit vecs to remove at end.
     let mut to_remove = vec![false; bitvecs.len()];
+    let start_inner = Instant::now();
     // Find redundant bitvecs.
-    for i in 0..bitvecs.len() - 1 {
-        for j in i + 1..bitvecs.len() {
+    for i in 0..ones_group_start.last().unwrap().1 {
+        let bitvec_i = &bitvecs[i];
+        let ogs_n = ones_group_start
+            .iter()
+            .position(|(ones, _)| *ones == bitvec_i.count_ones())
+            .unwrap();
+        for j in ones_group_start[ogs_n + 1].1..bitvecs.len() {
             if !to_remove[j] && (bitvecs[i].bits & bitvecs[j].bits == bitvecs[i].bits) {
                 to_remove[j] = true;
             }
         }
     }
+    time.remove_redundant_first_loop += start_inner.elapsed();
     // Remove redundancies.
     for i in (0..bitvecs.len()).rev() {
         if to_remove[i] {
             bitvecs.remove(i);
         }
     }
+    time.remove_redundant += start.elapsed();
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -203,8 +330,10 @@ enum RowCount {
 fn remove_essential_prime_impls(
     prime_impl_chart: &mut PrimeImplicateChart,
     prime_impls: &mut Vec<Minterm>,
+    time: &mut TimeInfo,
 ) -> (Vec<Minterm>, Vec<usize>) {
     assert!(prime_impls.len() == prime_impl_chart.rows.len());
+    let start = Instant::now();
 
     // If only one row (prime implicant) covers the minterm of a column,
     // the entry for that column holds that row index; else it holds None.
@@ -244,6 +373,7 @@ fn remove_essential_prime_impls(
             ess_prime_impls.push(prime_impls.remove(i));
         }
     }
+    time.remove_essential_prime_impls += start.elapsed();
 
     (ess_prime_impls, remaining_cols)
 }

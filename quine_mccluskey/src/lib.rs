@@ -7,6 +7,8 @@ pub mod petrick;
 
 use std::{collections::HashSet, error::Error};
 
+use crate::petrick::TimeInfo;
+
 // Conversion functions.
 
 const DEV_DEBUG: bool = false;
@@ -61,14 +63,15 @@ pub fn display_sort_minterms(minterms: &mut [Minterm]) {
 
 // Top-level API functions.
 
-pub fn qm_simplify(minterms: &[Minterm]) -> String {
+pub fn qm_simplify(minterms: &[Minterm]) -> (String, TimeInfo) {
     let prime_impls: Vec<Minterm> = get_prime_implicants(minterms).into_iter().collect();
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, minterms);
-    let minimal_sops = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
-    string_for_sop_minterms(&minimal_sops, true, Some(" "))
+    let (minimal_sops, time) = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
+    let message = string_for_sop_minterms(&minimal_sops, true, Some(" "));
+    (message, time)
 }
 
-pub fn qm_simplify_init(init_str: &str) -> Result<String, Box<dyn Error>> {
+pub fn qm_simplify_init(init_str: &str) -> Result<(String, TimeInfo), Box<dyn Error>> {
     let term_strings = binary_strings_from_init_hex(init_str)?;
     let minterms = term_strings
         .iter()

@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("INIT string: 16'h{init_string}");
 
     // Now convert back to sum-of-products string.
-    let sop_string = qm_simplify_init(&init_string)?;
+    let (sop_string, _time) = qm_simplify_init(&init_string)?;
     println!("Back to sum-of-products: {sop_string}");
 
     Ok(())

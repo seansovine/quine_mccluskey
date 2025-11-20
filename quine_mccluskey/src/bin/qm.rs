@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, &minterms);
-    let minimal_sops = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
+    let (minimal_sops, _time) = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
     println!(
         "A minimal equivalent expression:\n  {}",
         string_for_sop_minterms(&minimal_sops, true, Some(" "))
