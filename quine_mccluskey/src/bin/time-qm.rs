@@ -53,7 +53,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     display_sort_minterms(&mut minimal_sops);
     println!(
-        "\nA minimal equivalent expression:\n  {}",
+        "\nA minimal equivalent expression: ({} terms)\n  {}",
+        minimal_sops.len(),
         string_for_sop_minterms(&minimal_sops, true, Some("\n"))
     );
 

@@ -279,7 +279,7 @@ fn remove_redundant(bitvecs: &mut Vec<BitVec>, time: &mut TimeInfo) {
     }
     let start = Instant::now();
     // Sort so that vecs with fewer bits are first.
-    let ones_group_start = BitVec::bitsort(bitvecs);
+    let _ = BitVec::bitsort(bitvecs);
     bitvecs.dedup();
     let ones_group_start = BitVec::bitsort(bitvecs);
     if DEV_DEBUG {
@@ -291,6 +291,10 @@ fn remove_redundant(bitvecs: &mut Vec<BitVec>, time: &mut TimeInfo) {
     let start_inner = Instant::now();
     // Find redundant bitvecs.
     for i in 0..ones_group_start.last().unwrap().1 {
+        // If we removed bitvec i, then we'd have removed its supersets also.
+        if to_remove[i] {
+            continue;
+        }
         let bitvec_i = &bitvecs[i];
         let ogs_n = ones_group_start
             .iter()
