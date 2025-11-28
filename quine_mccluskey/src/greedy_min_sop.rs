@@ -52,12 +52,6 @@ pub fn get_minimal_sops(
             .collect::<Vec<_>>();
         assert!(!unselected_inds.is_empty());
 
-        // TODO: This shouldn't be necessary! Find the problem.
-        if unselected_inds.is_empty() {
-            println!("{covered:?}");
-            break;
-        }
-
         let first = *unselected_inds.first().unwrap();
         let mut max_count = count_additional_covered(&covered, &prime_impl_chart.rows[first]);
         let mut max_row = first;

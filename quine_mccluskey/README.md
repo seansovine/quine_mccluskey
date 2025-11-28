@@ -64,3 +64,16 @@ fn main() {
     );
 }
 ```
+
+## Greedy search for faster results
+
+By default the second stage of the algorithm -- choosing a minimal set of prime implicants -- is
+performed using Petrick's method. This method is produces an exact result but is unfortunately
+quite slow sometimes. In fact, the problem being solved is an instance of the Set Covering
+optimization problem which is known to be NP-hard.
+
+However, it is also known that the basic greedy algorithm generally does quite a good job of
+approximating solutions to the optimal set covering. We have implemented it here, and test
+results bear this out; it produces expressions that are usually at most one or two terms
+longer than the optimal expression produced by Petrick's method. To use this feature you can
+pass the `-g, --greedy` flag to the `qm` program.

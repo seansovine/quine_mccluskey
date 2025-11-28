@@ -260,7 +260,7 @@ impl std::fmt::Debug for PrimeImplicateChart {
         if self.rows.is_empty() {
             return Ok(());
         }
-
+        // Draw chart.
         let mut num_rows = vec![0_usize; self.rows.first().unwrap().len()];
         for (i, row) in self.rows.iter().enumerate() {
             write!(f, "{i:2}: ")?;
@@ -279,7 +279,8 @@ impl std::fmt::Debug for PrimeImplicateChart {
                 }
             }
         }
-
+        // Write bottom row with for each col itscol #; or * / R for
+        // essential prime implicate columns / columns with no support.
         write!(f, "---");
         for (i, num) in num_rows.iter().enumerate() {
             if *num == 1 {
@@ -294,7 +295,6 @@ impl std::fmt::Debug for PrimeImplicateChart {
             }
         }
         writeln!(f);
-
         Ok(())
     }
 }

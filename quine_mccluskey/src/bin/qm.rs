@@ -45,10 +45,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, &minterms);
     let mut minimal_sops = if use_greedy {
-        println!("\nFinding approximate minimal expression using greedy set covering algorithm.");
         greedy_min_sop::get_minimal_sops(prime_impl_chart, prime_impls)
     } else {
-        println!("\nFinding approximate minimal expression using Petrick's method.");
         petrick::get_minimal_sops(prime_impl_chart, prime_impls).0
     };
     display_sort_minterms(&mut minimal_sops);
