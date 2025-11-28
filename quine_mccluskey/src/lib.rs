@@ -3,11 +3,14 @@
 #![allow(unused)]
 
 pub mod check;
+pub mod greedy_min_sop;
 pub mod petrick;
 
 use std::{collections::HashSet, error::Error};
 
-use crate::petrick::TimeInfo;
+use clap::builder::Str;
+
+use crate::petrick::PetrickTimeInfo;
 
 // Conversion functions.
 
@@ -63,21 +66,44 @@ pub fn display_sort_minterms(minterms: &mut [Minterm]) {
 
 // Top-level API functions.
 
-pub fn qm_simplify(minterms: &[Minterm]) -> (String, TimeInfo) {
+pub fn qm_simplify(minterms: &[Minterm]) -> (String, usize, PetrickTimeInfo) {
     let prime_impls: Vec<Minterm> = get_prime_implicants(minterms).into_iter().collect();
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, minterms);
-    let (minimal_sops, time) = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
+    let (mut minimal_sops, time) = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
+    display_sort_minterms(&mut minimal_sops);
     let message = string_for_sop_minterms(&minimal_sops, true, Some(" "));
-    (message, time)
+    (message, minimal_sops.len(), time)
 }
 
-pub fn qm_simplify_init(init_str: &str) -> Result<(String, TimeInfo), Box<dyn Error>> {
+pub fn qm_simplify_init(
+    init_str: &str,
+) -> Result<(String, usize, PetrickTimeInfo), Box<dyn Error>> {
     let term_strings = binary_strings_from_init_hex(init_str)?;
     let minterms = term_strings
         .iter()
         .map(|s| (&**s).into())
         .collect::<Vec<_>>();
     Ok(qm_simplify(&minterms))
+}
+
+pub fn qm_simplify_greedy(minterms: &[Minterm]) -> (String, usize) {
+    let prime_impls: Vec<Minterm> = get_prime_implicants(minterms).into_iter().collect();
+    let prime_impl_chart = create_prime_implicant_chart(&prime_impls, minterms);
+    let mut minimal_sops = greedy_min_sop::get_minimal_sops(prime_impl_chart, prime_impls);
+    display_sort_minterms(&mut minimal_sops);
+    (
+        string_for_sop_minterms(&minimal_sops, true, Some(" ")),
+        minimal_sops.len(),
+    )
+}
+
+pub fn qm_simplify_init_greedy(init_str: &str) -> Result<(String, usize), Box<dyn Error>> {
+    let term_strings = binary_strings_from_init_hex(init_str)?;
+    let minterms = term_strings
+        .iter()
+        .map(|s| (&**s).into())
+        .collect::<Vec<_>>();
+    Ok(qm_simplify_greedy(&minterms))
 }
 
 // Minterm structure.
@@ -231,11 +257,51 @@ pub struct PrimeImplicateChart {
 
 impl std::fmt::Debug for PrimeImplicateChart {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for row in &self.rows {
-            let row_bytes: Vec<_> = row.iter().map(|v| if *v { b'1' } else { b'0' }).collect();
-            writeln!(f, "{}", String::from_utf8_lossy(&row_bytes))?;
+        if self.rows.is_empty() {
+            return Ok(());
         }
+
+        let mut num_rows = vec![0_usize; self.rows.first().unwrap().len()];
+        for (i, row) in self.rows.iter().enumerate() {
+            write!(f, "{i:2}: ")?;
+            for (col, present) in row.iter().enumerate() {
+                let char = if *present {
+                    num_rows[col] += 1;
+                    '1'
+                } else {
+                    '0'
+                };
+                write!(f, "{char}");
+                if col != row.len() - 1 {
+                    write!(f, " | ");
+                } else {
+                    writeln!(f);
+                }
+            }
+        }
+
+        write!(f, "---");
+        for (i, num) in num_rows.iter().enumerate() {
+            if *num == 1 {
+                write!(f, " *");
+            } else if *num == 0 {
+                write!(f, " R");
+            } else {
+                write!(f, "{i:2}");
+            }
+            if i < num_rows.len() - 1 {
+                write!(f, " |");
+            }
+        }
+        writeln!(f);
+
         Ok(())
+    }
+}
+
+impl PrimeImplicateChart {
+    fn count_in_row(&self, row: usize) -> usize {
+        self.rows[row].iter().filter(|s| **s).count()
     }
 }
 

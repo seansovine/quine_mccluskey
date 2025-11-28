@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use clap::{Arg, Command};
+use clap::{Arg, ArgAction, Command};
 use std::error::Error;
 
 use logic_minimization::*;
@@ -13,6 +13,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .long("init")
                 .help("Optional init string; up to 16 hex chars."),
         )
+        .arg(
+            Arg::new("greedy")
+                .short('g')
+                .long("greedy")
+                .required(false)
+                .action(ArgAction::SetTrue),
+        )
         .get_matches();
 
     let minterms;
@@ -23,6 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         minterms = test_case_hex()?;
     }
+    let use_greedy = matches.get_flag("greedy");
 
     println!(
         "Initial expression:\n    {}",
@@ -36,10 +44,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, &minterms);
-    let (minimal_sops, _time) = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
+    let mut minimal_sops = if use_greedy {
+        println!("\nFinding approximate minimal expression using greedy set covering algorithm.");
+        greedy_min_sop::get_minimal_sops(prime_impl_chart, prime_impls)
+    } else {
+        println!("\nFinding approximate minimal expression using Petrick's method.");
+        petrick::get_minimal_sops(prime_impl_chart, prime_impls).0
+    };
+    display_sort_minterms(&mut minimal_sops);
     println!(
-        "A minimal equivalent expression:\n  {}",
-        string_for_sop_minterms(&minimal_sops, true, Some(" "))
+        "\nA minimal equivalent expression: ({} terms)\n  {}",
+        minimal_sops.len(),
+        string_for_sop_minterms(&minimal_sops, true, Some("\n"))
     );
 
     Ok(())

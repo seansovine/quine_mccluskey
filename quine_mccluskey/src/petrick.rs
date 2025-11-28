@@ -75,7 +75,7 @@ impl BitVec {
     pub fn bitvecs_from_chart_col(
         prime_impl_chart: &PrimeImplicateChart,
         col: usize,
-        time: &mut TimeInfo,
+        time: &mut PetrickTimeInfo,
     ) -> Vec<Self> {
         let start = Instant::now();
         let rows = &prime_impl_chart.rows;
@@ -123,7 +123,7 @@ impl BitVec {
 // Functions to perform Petrick's method to simplify prime implicants chart.
 
 #[derive(Default)]
-pub struct TimeInfo {
+pub struct PetrickTimeInfo {
     pub remove_essential_prime_impls: Duration,
     pub bitvecs_from_chart_cols: Duration,
 
@@ -137,7 +137,7 @@ pub struct TimeInfo {
     pub pairwise_and: Duration,
 }
 
-impl TimeInfo {
+impl PetrickTimeInfo {
     pub fn format_me(&self) -> String {
         let mut message = String::new();
         writeln!(message, "Petrick run time:");
@@ -193,7 +193,7 @@ impl TimeInfo {
 pub fn get_minimal_sops(
     mut prime_impl_chart: PrimeImplicateChart,
     mut prime_impls: Vec<Minterm>,
-) -> (Vec<Minterm>, TimeInfo) {
+) -> (Vec<Minterm>, PetrickTimeInfo) {
     if prime_impl_chart.rows.is_empty() || prime_impl_chart.rows.first().unwrap().is_empty() {
         // Ok to panic here because this condition indicates programmer error.
         panic!("Prime implicant chart has either no rows or no columns.");
@@ -202,11 +202,11 @@ pub fn get_minimal_sops(
     assert!(prime_impls.len() == prime_impl_chart.rows.len());
     assert!(prime_impl_chart.rows.first().unwrap().len() <= 64);
 
-    let mut time = TimeInfo::default();
+    let mut time = PetrickTimeInfo::default();
 
     // Remove essential prime implicants from chart.
     let (mut min_expr_terms, remaining_cols) =
-        remove_essential_prime_impls(&mut prime_impl_chart, &mut prime_impls, &mut time);
+        remove_essential_prime_impls(&mut prime_impl_chart, &mut prime_impls, Some(&mut time));
     if remaining_cols.is_empty() {
         // Indicates all prime impls were essential, so we're done.
         return (min_expr_terms, time);
@@ -251,7 +251,7 @@ pub fn get_minimal_sops(
 fn pairwise_and(
     current_bitvecs: &[BitVec],
     next_col_bitvecs: &[BitVec],
-    time: &mut TimeInfo,
+    time: &mut PetrickTimeInfo,
 ) -> Vec<BitVec> {
     let start = Instant::now();
     let mut merged_bitvecs = vec![];
@@ -273,7 +273,7 @@ const DEV_DEBUG: bool = false;
 /// Remove bitvecs that are subsumed by others in the set.
 /// As a side effect, sorts reduced `bitvecs`.
 ///
-fn remove_redundant(bitvecs: &mut Vec<BitVec>, time: &mut TimeInfo) {
+fn remove_redundant(bitvecs: &mut Vec<BitVec>, time: &mut PetrickTimeInfo) {
     if bitvecs.is_empty() {
         return;
     }
@@ -331,18 +331,18 @@ enum RowCount {
 ///
 /// Modifies `prime_impls` and `prime_impl_chart`.
 ///
-fn remove_essential_prime_impls(
+pub fn remove_essential_prime_impls(
     prime_impl_chart: &mut PrimeImplicateChart,
     prime_impls: &mut Vec<Minterm>,
-    time: &mut TimeInfo,
+    time: Option<&mut PetrickTimeInfo>,
 ) -> (Vec<Minterm>, Vec<usize>) {
     assert!(prime_impls.len() == prime_impl_chart.rows.len());
     let start = Instant::now();
+    let row_width = prime_impl_chart.rows.first().unwrap().len();
 
-    // If only one row (prime implicant) covers the minterm of a column,
-    // the entry for that column holds that row index; else it holds None.
-    let mut remove_cols: Vec<RowCount> =
-        vec![RowCount::None; prime_impl_chart.rows.first().unwrap().len()];
+    // Records how many rows cover each column, singling out the case
+    // where a column is covered by only a single essential row.
+    let mut remove_cols: Vec<RowCount> = vec![RowCount::None; row_width];
 
     // Find essential prime implicants and corresponding columns.
     for (row_i, row) in prime_impl_chart.rows.iter().enumerate() {
@@ -364,12 +364,14 @@ fn remove_essential_prime_impls(
     for (i, val) in remove_cols.iter().enumerate() {
         if let RowCount::One(row_i) = val {
             ess_prime_impls_i[*row_i] = true;
-        } else {
+        } else if let RowCount::Multi = val {
             remaining_cols.push(i);
+        } else {
+            panic!("An implicant chart column that was not covered by any row.");
         }
     }
 
-    // Remove prime implicants and from prime_impls.
+    // Remove prime implicants from prime_impls and chart.
     let mut ess_prime_impls = vec![];
     for (i, val) in ess_prime_impls_i.iter().copied().enumerate().rev() {
         if val {
@@ -377,7 +379,25 @@ fn remove_essential_prime_impls(
             ess_prime_impls.push(prime_impls.remove(i));
         }
     }
-    time.remove_essential_prime_impls += start.elapsed();
+
+    // Remove any columns from remaining that now have no row support.
+    let mut col_rows = vec![0_usize; row_width];
+    for row in &prime_impl_chart.rows {
+        for (i, row_has_col) in row.iter().enumerate() {
+            if *row_has_col {
+                col_rows[i] += 1;
+            }
+        }
+    }
+    for i in (0..remaining_cols.len()).rev() {
+        if col_rows[remaining_cols[i]] == 0 {
+            remaining_cols.remove(i);
+        }
+    }
+
+    if let Some(time) = time {
+        time.remove_essential_prime_impls += start.elapsed();
+    }
 
     (ess_prime_impls, remaining_cols)
 }
