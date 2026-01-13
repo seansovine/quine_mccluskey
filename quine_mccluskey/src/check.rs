@@ -10,6 +10,11 @@ const DEV_DEBUG: bool = false;
 // with equations with a very specific form, e.g.:
 //  (A & !F) | (B & C & D)
 pub fn sop_string_to_init(sop_str: &str) -> String {
+    let minterms = sop_to_minterms(sop_str);
+    minterms_to_init(&minterms)
+}
+
+pub fn sop_to_minterms(sop_str: &str) -> Vec<Minterm> {
     let products = sop_str.trim().split('|');
     let mut minterms = vec![];
     for product in products {
@@ -22,9 +27,10 @@ pub fn sop_string_to_init(sop_str: &str) -> String {
         }
         minterms.push(minterm);
     }
-    minterms_to_init(&minterms)
+    minterms
 }
 
+// Allows either `!` or '~' for negation.
 fn parse_product(prod_str: &str) -> Minterm {
     let mut minterm = Minterm {
         values: vec![b'x', b'x', b'x', b'x', b'x', b'x'],
@@ -35,7 +41,7 @@ fn parse_product(prod_str: &str) -> Minterm {
     let terms = prod_str.split('&');
     for term in terms {
         let term = term.trim();
-        if term.starts_with('!') {
+        if term.starts_with('!') || term.starts_with('~') {
             let var = term
                 .chars()
                 .nth(1)
