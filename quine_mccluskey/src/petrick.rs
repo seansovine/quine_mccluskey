@@ -352,11 +352,11 @@ pub fn remove_essential_prime_impls(
 ) -> (Vec<Minterm>, Vec<usize>) {
     assert!(prime_impls.len() == prime_impl_chart.rows.len());
     let start = Instant::now();
-    let row_width = prime_impl_chart.rows.first().unwrap().len();
+    let num_cols = prime_impl_chart.rows.first().unwrap().len();
 
     // Records how many rows cover each column, singling out the case
     // where a column is covered by only a single essential row.
-    let mut remove_cols: Vec<RowCount> = vec![RowCount::None; row_width];
+    let mut remove_cols: Vec<RowCount> = vec![RowCount::None; num_cols];
 
     // Find essential prime implicants and corresponding columns.
     for (row_i, row) in prime_impl_chart.rows.iter().enumerate() {
@@ -373,15 +373,24 @@ pub fn remove_essential_prime_impls(
 
     // Indexed the same as prime_impls.
     let mut ess_prime_impls_i = vec![false; prime_impls.len()];
+    // Columns that are covered by a prime impilcant.
+    let mut covered_by_prime = vec![false; num_cols];
     // Mark essential prime implicants and get columns that are kept.
-    let mut remaining_cols = vec![];
-    for (i, val) in remove_cols.iter().enumerate() {
+    for val in remove_cols.iter_mut() {
         if let RowCount::One(row_i) = val {
             ess_prime_impls_i[*row_i] = true;
-        } else if let RowCount::Multi = val {
-            remaining_cols.push(i);
-        } else {
+            for (j, covered) in prime_impl_chart.rows[*row_i].iter().enumerate() {
+                covered_by_prime[j] |= covered;
+            }
+        } else if matches!(val, RowCount::None) {
             panic!("An implicant chart column that was not covered by any row.");
+        }
+    }
+    // Keep columns that aren't covered by a prime implicant.
+    let mut remaining_cols = vec![];
+    for (i, val) in remove_cols.iter().enumerate() {
+        if !matches!(val, RowCount::One(..)) && !covered_by_prime[i] {
+            remaining_cols.push(i);
         }
     }
 
@@ -395,7 +404,7 @@ pub fn remove_essential_prime_impls(
     }
 
     // Remove any columns from remaining that now have no row support.
-    let mut col_rows = vec![0_usize; row_width];
+    let mut col_rows = vec![0_usize; num_cols];
     for row in &prime_impl_chart.rows {
         for (i, row_has_col) in row.iter().enumerate() {
             if *row_has_col {
