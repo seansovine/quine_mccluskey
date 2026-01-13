@@ -2,7 +2,7 @@
 //! The problem is simpler here, since we restrict to
 //! at most six variables.
 
-use crate::{Minterm, string_for_minterm};
+use crate::{Minterm, format::string_for_minterm};
 
 const DEV_DEBUG: bool = false;
 
@@ -83,7 +83,7 @@ pub fn minterms_to_init(minterms: &[Minterm]) -> String {
 
 fn minterm_to_init_terms(minterm: &Minterm) -> Vec<String> {
     let mut init_terms = vec![String::new()];
-    for (i, value) in minterm.values.iter().enumerate() {
+    for value in minterm.values.iter() {
         match value {
             b'0' => {
                 for term in init_terms.iter_mut() {

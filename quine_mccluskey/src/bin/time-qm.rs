@@ -3,7 +3,10 @@
 use clap::{Arg, Command};
 use std::{error::Error, time::Instant};
 
-use logic_minimization::*;
+use logic_minimization::{
+    format::{binary_strings_from_init_hex, display_sort_minterms, string_for_sop_minterms},
+    *,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = Command::new("Quine-McCluskey")

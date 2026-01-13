@@ -38,10 +38,13 @@ impl BitVec {
         assert!(i < 64);
         self.bits |= 1u64 << i;
     }
+
+    #[allow(unused)]
     pub fn reset_bit(&mut self, i: usize) {
         assert!(i < 64);
         self.bits &= !(1u64 << i);
     }
+
     pub fn get_bit(&self, i: usize) -> bool {
         assert!(i < 64);
         (self.bits & (1u64 << i)) != 0
@@ -66,6 +69,7 @@ impl BitVec {
         nonzero_indices
     }
 
+    #[allow(unused)]
     pub fn is_subset(&self, other: &BitVec) -> bool {
         self.bits & other.bits == self.bits
     }
@@ -140,50 +144,58 @@ pub struct PetrickTimeInfo {
 impl PetrickTimeInfo {
     pub fn format_me(&self) -> String {
         let mut message = String::new();
-        writeln!(message, "Petrick run time:");
+        writeln!(message, "Petrick run time:").unwrap();
         writeln!(
             message,
             "-- remove_essential_prime_impls: {:>5} ms",
             self.remove_essential_prime_impls.as_millis()
-        );
+        )
+        .unwrap();
         writeln!(
             message,
             "-- bitvecs_from_chart_cols:      {:>5} ms",
             self.bitvecs_from_chart_cols.as_millis()
-        );
-        writeln!(message);
+        )
+        .unwrap();
+        writeln!(message).unwrap();
         writeln!(
             message,
             "-- remove_redundant:             {:>5} ms",
             self.remove_redundant.as_millis()
-        );
+        )
+        .unwrap();
         writeln!(
             message,
             "-- remove_redundant first loop:  {:>5} ms",
             self.remove_redundant_first_loop.as_millis()
-        );
-        writeln!(message);
+        )
+        .unwrap();
+        writeln!(message).unwrap();
         writeln!(
             message,
             "-- first loop:                   {:>5} ms",
             self.first_loop.as_millis()
-        );
+        )
+        .unwrap();
         writeln!(
             message,
             "-- second loop:                  {:>5} ms",
             self.second_loop.as_millis()
-        );
-        writeln!(message);
+        )
+        .unwrap();
+        writeln!(message).unwrap();
         writeln!(
             message,
             "-- pairwise_and calls:           {:>5} ",
             self.pairwise_and_calls
-        );
+        )
+        .unwrap();
         write!(
             message,
             "-- pairwise_and:                 {:>5} ms",
             self.pairwise_and.as_millis()
-        );
+        )
+        .unwrap();
         message
     }
 }
@@ -212,8 +224,10 @@ pub fn get_minimal_sops(
         return (min_expr_terms, time);
     }
 
+    // TODO: Why is this still here but unused?
+    // let first_remaining_col = *remaining_cols.first().unwrap();
+
     // Simplify remaining terms with boolean logic rules.
-    let first_remaining_col = *remaining_cols.first().unwrap();
     let mut current_bitvecs: Vec<BitVec> = vec![BitVec::default()];
     let col_bitvecs = remaining_cols
         .into_iter()

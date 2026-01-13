@@ -4,9 +4,9 @@ use std::error::Error;
 
 use clap::{Arg, Command};
 use logic_minimization::{
-    Minterm, binary_strings_from_init_hex,
+    Minterm,
     check::{sop_string_to_init, sop_to_minterms},
-    display_sort_minterms, string_for_sop_minterms,
+    format::{binary_strings_from_init_hex, display_sort_minterms, string_for_sop_minterms},
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -46,14 +46,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             .map(|s| (&**s).into())
             .collect::<Vec<Minterm>>();
         let sop_string = string_for_sop_minterms(&minterms, true, Some("\n"));
-        println!("SoP string for init:\n{sop_string}");
+        println!("SoP string for init:\n  {sop_string}");
     }
 
     if let Some(sop_string) = matches.get_one::<String>("format-sop") {
         let mut minterms = sop_to_minterms(sop_string);
         display_sort_minterms(&mut minterms);
         let sop_string = string_for_sop_minterms(&minterms, true, Some("\n"));
-        println!("Formatted SoP string:\n{sop_string}");
+        println!("Formatted SoP string:\n  {sop_string}");
     }
 
     Ok(())
