@@ -50,7 +50,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let use_greedy = matches.get_flag("greedy");
 
     println!(
-        "Initial expression:\n  {}",
+        "Initial expression: ({} terms)\n  {}",
+        minterms.len(),
         string_for_sop_minterms(&minterms, false, Some("\n"))
     );
 

@@ -32,10 +32,7 @@ fn main() {
             continue;
         }
 
-        print!(
-            "{:02}: Testing INIT value {init_string} using GREEDY approximation ... ",
-            i + 1
-        );
+        print!("--: Testing INIT value {init_string} using GREEDY approximation ... ");
         let (sop_string, num_minterms, time_millis) = timed_qm(&init_string, true);
         let return_init = sop_string_to_init(&sop_string);
         match init_string == return_init {
