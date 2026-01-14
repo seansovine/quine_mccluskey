@@ -65,7 +65,6 @@ impl BitVec {
                 nonzero_indices.push(i);
             }
         }
-
         nonzero_indices
     }
 
@@ -112,6 +111,7 @@ impl BitVec {
             // Same # of 1-bits.
             a.bits.cmp(&b.bits)
         });
+
         // (# ones, starting position of bitvecs with this # ones)
         let mut ones_group_start: Vec<(u32, usize)> = vec![];
         for (i, bv) in bitvecs.iter().enumerate() {
@@ -224,9 +224,6 @@ pub fn get_minimal_sops(
         return (min_expr_terms, time);
     }
 
-    // TODO: Why is this still here but unused?
-    // let first_remaining_col = *remaining_cols.first().unwrap();
-
     // Simplify remaining terms with boolean logic rules.
     let mut current_bitvecs: Vec<BitVec> = vec![BitVec::default()];
     let col_bitvecs = remaining_cols
@@ -320,6 +317,7 @@ fn remove_redundant(bitvecs: &mut Vec<BitVec>, time: &mut PetrickTimeInfo) {
             }
         }
     }
+
     time.remove_redundant_first_loop += start_inner.elapsed();
     // Remove redundancies.
     for i in (0..bitvecs.len()).rev() {

@@ -15,7 +15,7 @@ use logic_minimization::{
 
 use rand::Rng;
 
-const NUM_CASES: usize = 20;
+const NUM_CASES: usize = 200;
 const DEV_DEBUG: bool = false;
 
 const TEMPLATE: &str = r#"

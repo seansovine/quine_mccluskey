@@ -1,7 +1,5 @@
 //! Apply the Quine-McCluskey algorithm to minimize a logical expression.
 
-#![allow(unused)]
-
 use clap::{Arg, ArgAction, Command};
 use std::error::Error;
 
@@ -36,7 +34,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         )
         .get_matches();
 
-    let minterms;
+    let use_greedy = matches.get_flag("greedy");
+    let mut minterms;
+
     if let Some(init) = matches.get_one::<String>("init") {
         // Convert hex init string to minterms for simplification.
         let term_strings = binary_strings_from_init_hex(init)?;
@@ -47,8 +47,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("No input provided. Please use --help to see input options.");
         return Ok(());
     }
-    let use_greedy = matches.get_flag("greedy");
 
+    display_sort_minterms(&mut minterms);
     println!(
         "Initial expression: ({} terms)\n  {}",
         minterms.len(),
@@ -56,6 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let mut prime_impls: Vec<Minterm> = get_prime_implicants(&minterms).into_iter().collect();
+
     display_sort_minterms(&mut prime_impls);
     println!(
         "\nEquivalent expression from prime implicants:\n  {}",
@@ -73,6 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         petrick::get_minimal_sops(prime_impl_chart, prime_impls).0
     };
+
     display_sort_minterms(&mut minimal_sops);
     println!(
         "\nA minimal equivalent expression: ({} terms)\n  {}",
