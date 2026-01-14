@@ -1,10 +1,2 @@
-# Conventional build file directories.
-build/
-target/
-
-.vscode
-
-# CLion config and build files.
-.idea
-cmake-build-*/
-
+/target/
+/scratch/
