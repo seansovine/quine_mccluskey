@@ -1,10 +1,6 @@
-//! Code
-//!
-//! TODO: Some more existing code needs moved here.
+//! A few examples for testing.
 
 #![allow(unused)]
-
-// A few examples for testing.
 
 use std::error::Error;
 

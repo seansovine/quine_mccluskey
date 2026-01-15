@@ -3,8 +3,9 @@
 
 use std::time::Instant;
 
-use logic_minimization::{check::sop_string_to_init, qm_simplify_init, qm_simplify_init_greedy};
 use rand::Rng;
+
+use logic_minimization::{check::sop_string_to_init, qm_simplify_init, qm_simplify_init_greedy};
 
 const NUM_CASES: usize = 50;
 const USE_GREEDY: bool = true;
@@ -17,8 +18,10 @@ fn main() {
         let init_string = format!("{init:016X}");
 
         print!("{:02}: Testing INIT value {init_string} ... ", i + 1);
+
         let (sop_string, num_minterms, time_millis) = timed_qm(&init_string, false);
         let return_init = sop_string_to_init(&sop_string);
+
         match init_string == return_init {
             true => println!("PASSED ({num_minterms} minterms)."),
             false => println!("FAILED. Round trip INIT was: {return_init}."),
@@ -33,8 +36,10 @@ fn main() {
         }
 
         print!("--: Testing INIT value {init_string} using GREEDY approximation ... ");
+
         let (sop_string, num_minterms, time_millis) = timed_qm(&init_string, true);
         let return_init = sop_string_to_init(&sop_string);
+
         match init_string == return_init {
             true => println!("PASSED ({num_minterms} minterms)."),
             false => println!("FAILED. Round trip INIT was: {return_init}."),
@@ -56,5 +61,6 @@ fn timed_qm(init_str: &str, greedy: bool) -> (String, usize, u128) {
         (sop_string, num_minterms)
     };
     let elapsed = start_time.elapsed().as_millis();
+
     (sop_string, num_minterms, elapsed)
 }

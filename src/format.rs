@@ -1,9 +1,10 @@
-// Character for negation in formatted outupt.
+//! Code to format and display logical expressions.
 
 use std::error::Error;
 
 use crate::Minterm;
 
+// Character for negation in formatted outupt.
 const NEG_CHAR: char = '~';
 
 // ---------------------

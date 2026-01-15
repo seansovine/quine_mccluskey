@@ -1,11 +1,12 @@
 //! Apply the Quine-McCluskey algorithm to minimize a logical expression.
 
-use clap::{Arg, ArgAction, Command};
 use std::error::Error;
 
+use clap::{Arg, ArgAction, Command};
+
 use logic_minimization::{
-    check::sop_to_minterms,
-    format::{binary_strings_from_init_hex, display_sort_minterms, string_for_sop_minterms},
+    check::{init_to_minterms, sop_to_minterms},
+    format::{display_sort_minterms, string_for_sop_minterms},
     *,
 };
 
@@ -39,8 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if let Some(init) = matches.get_one::<String>("init") {
         // Convert hex init string to minterms for simplification.
-        let term_strings = binary_strings_from_init_hex(init)?;
-        minterms = term_strings.iter().map(|s| (&**s).into()).collect()
+        minterms = init_to_minterms(init)?;
     } else if let Some(sop_string) = matches.get_one::<String>("sop") {
         minterms = sop_to_minterms(sop_string);
     } else {
@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut minimal_sops = if use_greedy {
         greedy_min_sop::get_minimal_sops(prime_impl_chart, prime_impls)
     } else {
-        petrick::get_minimal_sops(prime_impl_chart, prime_impls).0
+        petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls).0
     };
 
     display_sort_minterms(&mut minimal_sops);

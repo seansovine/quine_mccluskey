@@ -18,7 +18,7 @@ use crate::{
 pub fn qm_simplify(minterms: &[Minterm]) -> (String, usize, PetrickTimeInfo) {
     let prime_impls: Vec<Minterm> = get_prime_implicants(minterms).into_iter().collect();
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, minterms);
-    let (mut minimal_sops, time) = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
+    let (mut minimal_sops, time) = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
     display_sort_minterms(&mut minimal_sops);
     let message = string_for_sop_minterms(&minimal_sops, true, Some(" "));
     (message, minimal_sops.len(), time)

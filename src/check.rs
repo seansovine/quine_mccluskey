@@ -1,8 +1,13 @@
 //! Code for checking logical equivalence of equations.
-//! The problem is simpler here, since we restrict to
-//! at most six variables.
+//! The problem is simpler here than in the general case,
+//! since we restrict to at most six variables.
 
-use crate::{Minterm, format::string_for_minterm};
+use std::error::Error;
+
+use crate::{
+    Minterm,
+    format::{binary_strings_from_init_hex, string_for_minterm},
+};
 
 const DEV_DEBUG: bool = false;
 
@@ -12,6 +17,11 @@ const DEV_DEBUG: bool = false;
 pub fn sop_string_to_init(sop_str: &str) -> String {
     let minterms = sop_to_minterms(sop_str);
     minterms_to_init(&minterms)
+}
+
+pub fn init_to_minterms(init_str: &str) -> Result<Vec<Minterm>, Box<dyn Error>> {
+    let term_strings = binary_strings_from_init_hex(init_str)?;
+    Ok(term_strings.iter().map(|s| (&**s).into()).collect())
 }
 
 pub fn sop_to_minterms(sop_str: &str) -> Vec<Minterm> {

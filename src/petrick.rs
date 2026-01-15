@@ -3,13 +3,13 @@
 // THe discussion here was helpful in understanding how to implement this:
 //   https://math.stackexchange.com/a/4992057/198658
 
-use super::{Minterm, PrimeImplicateChart};
-
 use std::{
     cmp::Ordering,
     fmt::Write,
     time::{Duration, Instant},
 };
+
+use super::{Minterm, PrimeImplicateChart};
 
 // Bit vector data structure for simplifying prime implicant chart.
 
@@ -96,7 +96,6 @@ impl BitVec {
             }
         }
         time.bitvecs_from_chart_cols += start.elapsed();
-
         bit_vecs
     }
 
@@ -126,83 +125,9 @@ impl BitVec {
 
 // Functions to perform Petrick's method to simplify prime implicants chart.
 
-#[derive(Default)]
-pub struct PetrickTimeInfo {
-    pub remove_essential_prime_impls: Duration,
-    pub bitvecs_from_chart_cols: Duration,
-
-    pub remove_redundant: Duration,
-    pub remove_redundant_first_loop: Duration,
-
-    pub first_loop: Duration,
-    pub second_loop: Duration,
-
-    pub pairwise_and_calls: u64,
-    pub pairwise_and: Duration,
-}
-
-impl PetrickTimeInfo {
-    pub fn format_me(&self) -> String {
-        let mut message = String::new();
-        writeln!(message, "Petrick run time:").unwrap();
-        writeln!(
-            message,
-            "-- remove_essential_prime_impls: {:>5} ms",
-            self.remove_essential_prime_impls.as_millis()
-        )
-        .unwrap();
-        writeln!(
-            message,
-            "-- bitvecs_from_chart_cols:      {:>5} ms",
-            self.bitvecs_from_chart_cols.as_millis()
-        )
-        .unwrap();
-        writeln!(message).unwrap();
-        writeln!(
-            message,
-            "-- remove_redundant:             {:>5} ms",
-            self.remove_redundant.as_millis()
-        )
-        .unwrap();
-        writeln!(
-            message,
-            "-- remove_redundant first loop:  {:>5} ms",
-            self.remove_redundant_first_loop.as_millis()
-        )
-        .unwrap();
-        writeln!(message).unwrap();
-        writeln!(
-            message,
-            "-- first loop:                   {:>5} ms",
-            self.first_loop.as_millis()
-        )
-        .unwrap();
-        writeln!(
-            message,
-            "-- second loop:                  {:>5} ms",
-            self.second_loop.as_millis()
-        )
-        .unwrap();
-        writeln!(message).unwrap();
-        writeln!(
-            message,
-            "-- pairwise_and calls:           {:>5} ",
-            self.pairwise_and_calls
-        )
-        .unwrap();
-        write!(
-            message,
-            "-- pairwise_and:                 {:>5} ms",
-            self.pairwise_and.as_millis()
-        )
-        .unwrap();
-        message
-    }
-}
-
 /// Get a minimal set of prime implicants for an equivalent expression.
 ///
-pub fn get_minimal_sops(
+pub fn get_minimal_sop_terms(
     mut prime_impl_chart: PrimeImplicateChart,
     mut prime_impls: Vec<Minterm>,
 ) -> (Vec<Minterm>, PetrickTimeInfo) {
@@ -275,7 +200,6 @@ fn pairwise_and(
     }
     merged_bitvecs.dedup();
     time.pairwise_and += start.elapsed();
-
     merged_bitvecs
 }
 
@@ -421,4 +345,81 @@ pub fn remove_essential_prime_impls(
     }
 
     (ess_prime_impls, remaining_cols)
+}
+
+// Struct for timing data for optimization.
+
+#[derive(Default)]
+pub struct PetrickTimeInfo {
+    pub remove_essential_prime_impls: Duration,
+    pub bitvecs_from_chart_cols: Duration,
+
+    pub remove_redundant: Duration,
+    pub remove_redundant_first_loop: Duration,
+
+    pub first_loop: Duration,
+    pub second_loop: Duration,
+
+    pub pairwise_and_calls: u64,
+    pub pairwise_and: Duration,
+}
+
+impl PetrickTimeInfo {
+    pub fn format_me(&self) -> String {
+        let mut message = String::new();
+        writeln!(message, "Petrick run time:").unwrap();
+        writeln!(
+            message,
+            "-- remove_essential_prime_impls: {:>5} ms",
+            self.remove_essential_prime_impls.as_millis()
+        )
+        .unwrap();
+        writeln!(
+            message,
+            "-- bitvecs_from_chart_cols:      {:>5} ms",
+            self.bitvecs_from_chart_cols.as_millis()
+        )
+        .unwrap();
+        writeln!(message).unwrap();
+        writeln!(
+            message,
+            "-- remove_redundant:             {:>5} ms",
+            self.remove_redundant.as_millis()
+        )
+        .unwrap();
+        writeln!(
+            message,
+            "-- remove_redundant first loop:  {:>5} ms",
+            self.remove_redundant_first_loop.as_millis()
+        )
+        .unwrap();
+        writeln!(message).unwrap();
+        writeln!(
+            message,
+            "-- first loop:                   {:>5} ms",
+            self.first_loop.as_millis()
+        )
+        .unwrap();
+        writeln!(
+            message,
+            "-- second loop:                  {:>5} ms",
+            self.second_loop.as_millis()
+        )
+        .unwrap();
+        writeln!(message).unwrap();
+        writeln!(
+            message,
+            "-- pairwise_and calls:           {:>5} ",
+            self.pairwise_and_calls
+        )
+        .unwrap();
+        write!(
+            message,
+            "-- pairwise_and:                 {:>5} ms",
+            self.pairwise_and.as_millis()
+        )
+        .unwrap();
+
+        message
+    }
 }

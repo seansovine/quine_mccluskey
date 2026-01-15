@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("(*) {elapsed:>4} ms - Created prime implicant chart.");
 
     let start_time = Instant::now();
-    let (mut minimal_sops, time) = petrick::get_minimal_sops(prime_impl_chart, prime_impls);
+    let (mut minimal_sops, time) = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
     let elapsed = start_time.elapsed().as_millis();
     println!("(*) {elapsed:>4} ms - Simplified using Petrick's method.");
 
