@@ -5,8 +5,12 @@ This is a basic Rust implementation of the
 algorithm for simplifying sum-of-products logic expressions.
 This version supports expressions in at most 6 variables, but
 could be adapted to handle more variables. There are several other
-crates available with good implementations of Quine-McCluskey, but
-implementing it from scratch was a good learning project.
+crates available with good implementations of Quine-McCluskey; this
+project has been a place to try out some ideas for fun.
+
+Note that logic simplification and equivalence checking are vast fields
+and this project doesn't even begin to scratch the surface of what's out
+there.
 
 __Example 1:__
 
@@ -126,6 +130,10 @@ the simplifed function will be equivalent to the original input function exactly
 init string is the same as the original init string. The program checks each generated example for
 this equivalence.
 
+Note that the reason the init string approach is feasible is that we restrict to only 6 variables:
+The size of the init string grows exponentially in the number of variables. Logical equivalence checking
+for more complex functions is a difficult problem, and more sophisticated tools are available.
+
 ### Comparison with a well-established library
 
 The SymPy Python library has a module that simplifes boolean functions using the Quine-McCluskey
@@ -137,7 +145,7 @@ with both SymPy and with the our implementation. There can be multiple equivalen
 functions for a given input, but we can confirm the minimality of our results by comparing the
 number of terms they contain to the number of terms in the results from Sympy.
 
-\* Actually it appears that SymPy falls back to a heuristic approach in some cases. This is fair
-because the purpose of their function `to_dnf` that we're using is just to convert an expression
+\* It appears that SymPy falls back to an approximate approach in some cases. This is fair
+because the purpose of their function `to_dnf` that we're using is to convert an expression
 to disjunctive normal form (a.k.a. sum-of-products), and minimization is just a side effect of
 the process.

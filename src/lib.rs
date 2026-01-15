@@ -14,6 +14,7 @@ use crate::{
     petrick::PetrickTimeInfo,
 };
 
+// ------------------------
 // Top-level API functions.
 
 pub fn qm_simplify(minterms: &[Minterm]) -> (String, usize, PetrickTimeInfo) {
@@ -56,6 +57,7 @@ pub fn qm_simplify_init_greedy(init_str: &str) -> Result<(String, usize), Box<dy
     Ok(qm_simplify_greedy(&minterms))
 }
 
+// ------------------
 // Minterm structure.
 
 #[derive(Hash, Clone, PartialEq, Eq)]
@@ -85,7 +87,10 @@ impl From<&str> for Minterm {
     }
 }
 
+// -----------------------------------------
 // Compute prime implicants from implicants.
+
+const DEV_DEBUG: bool = false;
 
 pub fn get_prime_implicants(minterms: &[Minterm]) -> HashSet<Minterm> {
     let mut prime_implicants = HashSet::<Minterm>::new();
@@ -108,10 +113,8 @@ pub fn get_prime_implicants(minterms: &[Minterm]) -> HashSet<Minterm> {
         }
     }
 
-    // Print intermediate results for debugging.
-    const DEBUG: bool = false;
-
-    if DEBUG {
+    if DEV_DEBUG {
+        // Print intermediate results for debugging.
         let mut current_terms = prime_implicants.iter().cloned().collect::<Vec<Minterm>>();
         display_sort_minterms(&mut current_terms);
         println!(
@@ -131,7 +134,6 @@ pub fn get_prime_implicants(minterms: &[Minterm]) -> HashSet<Minterm> {
 /// with neither minterm having a "don't care" in that position.
 fn can_merge(minterm_1: &Minterm, minterm_2: &Minterm) -> Option<usize> {
     assert!(minterm_1.values.len() == minterm_2.values.len());
-
     let mut first_diff = None;
     for (i, (val_1, val_2)) in minterm_1
         .values
@@ -156,7 +158,8 @@ fn can_merge(minterm_1: &Minterm, minterm_2: &Minterm) -> Option<usize> {
     first_diff
 }
 
-// Prime implicate chart.
+// ---------------------------
+// Prime implicate chart type.
 
 pub struct PrimeImplicateChart {
     rows: Vec<Vec<bool>>,
@@ -228,7 +231,6 @@ pub fn create_prime_implicant_chart(
 
 fn check_match(minterm_1: &Minterm, minterm_2: &Minterm) -> bool {
     assert!(minterm_1.values.len() == minterm_2.values.len());
-
     for i in 0..minterm_1.values.len() {
         if minterm_1.values[i] == b'x' {
             continue;
@@ -242,7 +244,6 @@ fn check_match(minterm_1: &Minterm, minterm_2: &Minterm) -> bool {
 
 fn set_matches(patt_term: &Minterm, minterms: &[Minterm], matches: &mut [bool]) {
     assert!(minterms.len() == matches.len());
-
     for (i, minterm) in minterms.iter().enumerate() {
         matches[i] = check_match(patt_term, minterm);
     }

@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let elapsed = start_time.elapsed().as_millis();
     println!("(*) {elapsed:>4} ms - Simplified using Petrick's method.");
 
-    println!("\n{}", time.format_me());
+    println!("\n{}", time.get_report());
 
     display_sort_minterms(&mut minimal_sops);
     println!(

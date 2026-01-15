@@ -1,6 +1,6 @@
-//! Code for checking logical equivalence of equations.
-//! The problem is simpler here than in the general case,
-//! since we restrict to at most six variables.
+//! Code for converting between various representations of logical functions.
+//! The problem is simpler here than in the general case, since we restrict to
+//! functions with at most six variables.
 
 use std::error::Error;
 

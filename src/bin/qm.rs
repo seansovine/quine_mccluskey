@@ -60,7 +60,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     display_sort_minterms(&mut prime_impls);
     println!(
-        "\nEquivalent expression from prime implicants:\n  {}",
+        "\nEquivalent expression from prime implicants ({} terms):\n  {}",
+        prime_impls.len(),
         string_for_sop_minterms(&prime_impls, false, Some(SEPARATOR))
     );
 
