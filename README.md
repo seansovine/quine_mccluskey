@@ -136,3 +136,8 @@ SymPy. This program randomly generates a sequence of boolean functions, which ar
 with both SymPy and with the our implementation. There can be multiple equivalent minimal
 functions for a given input, but we can confirm the minimality of our results by comparing the
 number of terms they contain to the number of terms in the results from Sympy.
+
+\* Actually it appears that SymPy falls back to a heuristic approach in some cases. This is fair
+because the purpose of their function `to_dnf` that we're using is just to convert an expression
+to disjunctive normal form (a.k.a. sum-of-products), and minimization is just a side effect of
+the process.

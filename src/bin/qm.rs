@@ -11,6 +11,7 @@ use logic_minimization::{
 };
 
 const DEBUG: bool = false;
+const SEPARATOR: &str = "\n";
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = Command::new("Quine-McCluskey")
@@ -52,7 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!(
         "Initial expression: ({} terms)\n  {}",
         minterms.len(),
-        string_for_sop_minterms(&minterms, false, Some("\n"))
+        string_for_sop_minterms(&minterms, false, Some(SEPARATOR))
     );
 
     let mut prime_impls: Vec<Minterm> = get_prime_implicants(&minterms).into_iter().collect();
@@ -60,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     display_sort_minterms(&mut prime_impls);
     println!(
         "\nEquivalent expression from prime implicants:\n  {}",
-        string_for_sop_minterms(&prime_impls, false, Some("\n"))
+        string_for_sop_minterms(&prime_impls, false, Some(SEPARATOR))
     );
 
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, &minterms);
@@ -79,7 +80,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!(
         "\nA minimal equivalent expression: ({} terms)\n  {}",
         minimal_sops.len(),
-        string_for_sop_minterms(&minimal_sops, true, Some("\n"))
+        string_for_sop_minterms(&minimal_sops, true, Some(SEPARATOR))
     );
 
     Ok(())

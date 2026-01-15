@@ -7,12 +7,13 @@ use rand::Rng;
 
 use logic_minimization::{convert::sop_string_to_init, qm_simplify_init, qm_simplify_init_greedy};
 
-const NUM_CASES: usize = 50;
+const NUM_CASES: usize = 200;
 const USE_GREEDY: bool = true;
 const DEBUG_INITS: bool = false;
 
 fn main() {
     let mut rng = rand::rng();
+    let mut failures = 0;
     for i in 0..NUM_CASES {
         let init: u64 = rng.random_range(0..=u64::MAX);
         let init_string = format!("{init:016X}");
@@ -24,7 +25,10 @@ fn main() {
 
         match init_string == return_init {
             true => println!("PASSED ({num_minterms} minterms)."),
-            false => println!("FAILED. Round trip INIT was: {return_init}."),
+            false => {
+                println!("FAILED. Round trip INIT was: {return_init}.");
+                failures += 1;
+            }
         }
         if DEBUG_INITS {
             println!("    minimal SOP: {sop_string}");
@@ -42,13 +46,21 @@ fn main() {
 
         match init_string == return_init {
             true => println!("PASSED ({num_minterms} minterms)."),
-            false => println!("FAILED. Round trip INIT was: {return_init}."),
+            false => {
+                println!("FAILED. Round trip INIT was: {return_init}.");
+                failures += 1;
+            }
         }
         if DEBUG_INITS {
             println!("    minimal SOP: {sop_string}");
         }
         println!("    QM time: {time_millis} ms");
     }
+
+    println!("\n========\n");
+    println!("Results:\n");
+    println!("- Passes: {}", NUM_CASES - failures);
+    println!("- Failures: {}\n", failures);
 }
 
 fn timed_qm(init_str: &str, greedy: bool) -> (String, usize, u128) {
