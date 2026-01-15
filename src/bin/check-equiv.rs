@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-use logic_minimization::{check::sop_string_to_init, qm_simplify_init};
+use logic_minimization::{convert::sop_string_to_init, qm_simplify_init};
 
 const TEST_SOP_STRING: &str = "(A & !F) | (B & !C & D)";
 

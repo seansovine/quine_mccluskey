@@ -1,10 +1,11 @@
-#![allow(unused)]
+//! Run the QM algorithm and track time for each step, for optimization use.
 
 use clap::{Arg, Command};
 use std::{error::Error, time::Instant};
 
 use logic_minimization::{
-    format::{binary_strings_from_init_hex, display_sort_minterms, string_for_sop_minterms},
+    convert::binary_strings_from_init_hex,
+    format::{display_sort_minterms, string_for_sop_minterms},
     *,
 };
 

@@ -1,6 +1,6 @@
 // Implement Quine-McCluskey.
 
-pub mod check;
+pub mod convert;
 pub mod format;
 pub mod greedy_min_sop;
 pub mod petrick;
@@ -9,7 +9,8 @@ pub mod test;
 use std::{collections::HashSet, error::Error};
 
 use crate::{
-    format::{binary_strings_from_init_hex, display_sort_minterms, string_for_sop_minterms},
+    convert::binary_strings_from_init_hex,
+    format::{display_sort_minterms, string_for_sop_minterms},
     petrick::PetrickTimeInfo,
 };
 

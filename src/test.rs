@@ -4,7 +4,7 @@
 
 use std::error::Error;
 
-use crate::{Minterm, format::binary_strings_from_init_hex};
+use crate::{Minterm, convert::binary_strings_from_init_hex};
 
 fn test_case_hex() -> Result<Vec<Minterm>, Box<dyn Error>> {
     // Should simplify to (!A & B & !C & !D & !E) | (!A & B & F).

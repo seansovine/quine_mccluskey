@@ -4,12 +4,39 @@
 
 use std::error::Error;
 
-use crate::{
-    Minterm,
-    format::{binary_strings_from_init_hex, string_for_minterm},
-};
+use crate::{Minterm, format::string_for_minterm};
+
+// ---------------------
+// Conversion functions.
 
 const DEV_DEBUG: bool = false;
+
+/// Convert a hex "init" string to a list of binary term strings.
+pub fn binary_strings_from_init_hex(hex_str: &str) -> Result<Vec<String>, Box<dyn Error>> {
+    const HEX_LEN: usize = 16;
+    if hex_str.len() > HEX_LEN {
+        return Err(String::from("Hex string contains more than 16 hex chars.").into());
+    }
+    let zero_pad: String = std::iter::repeat_n('0', HEX_LEN - hex_str.len()).collect();
+    let hex_str = format!("{zero_pad}{hex_str}");
+    let num: u64 =
+        u64::from_str_radix(&hex_str, 16).expect("String is not a valid 64-bit hex string.");
+
+    if DEV_DEBUG {
+        println!("As binary: {num:064b}");
+    }
+    let mut strings = vec![];
+    for i in 0..64 {
+        let mask: u64 = 1 << i;
+        if mask & num > 0 {
+            if DEV_DEBUG {
+                println!("Term {i:02}: {i:06b}");
+            }
+            strings.push(format!("{i:06b}"));
+        }
+    }
+    Ok(strings)
+}
 
 // We will take a simpler approach here, since we are dealing
 // with equations with a very specific form, e.g.:
@@ -40,15 +67,22 @@ pub fn sop_to_minterms(sop_str: &str) -> Vec<Minterm> {
     minterms
 }
 
+const ALLOWED_VARS: &[char] = &['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
 // Allows either `!` or '~' for negation.
 fn parse_product(prod_str: &str) -> Minterm {
     let mut minterm = Minterm {
         values: vec![b'x', b'x', b'x', b'x', b'x', b'x'],
     };
-    assert!(prod_str.starts_with('(') && prod_str.chars().nth_back(0) == Some(')'));
-    // We require product terms enclosed in parentheses.
-    let prod_str = &prod_str.trim()[1..prod_str.len() - 1];
-    let terms = prod_str.split('&');
+    let mut prod_ref = prod_str;
+    if !prod_str.starts_with('(') {
+        assert!(prod_str.len() == 1 && ALLOWED_VARS.contains(&prod_str.chars().next().unwrap()));
+    } else {
+        // We require nontrivial product enclosed in parentheses.
+        assert!(prod_str.starts_with('(') && prod_str.chars().nth_back(0) == Some(')'));
+        prod_ref = &prod_str.trim()[1..prod_str.len() - 1];
+    }
+    let terms = prod_ref.split('&');
     for term in terms {
         let term = term.trim();
         if term.starts_with('!') || term.starts_with('~') {

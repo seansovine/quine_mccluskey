@@ -48,7 +48,7 @@ fn main() {
     ];
 
     // Or from sum-of-products string:
-    let minterms = sop_to_minterms("(~C & B) | (C & B) | (~B & A) | (~B & ~A) | (C)");
+    let minterms = sop_to_minterms("(~C & B) | (C & B) | (~B & A) | (~B & ~A) | C");
 
     // Or from hex init string:
     let minterms = init_to_minterms("BDBDBDBDBDBDBDBD")?;
@@ -79,7 +79,11 @@ Or the `src/bin/qm.rs` program will take as input either a sum-of-products strin
 string representing a sum-of-products expression:
 
 ```shell
+# Sum-of-products input.
 target/release/qm -s '(~C & B) | (C & B) | (~B & A) | (~B & ~A) | C'
+
+# Init string input. (Warning this example takes a while.)
+target/release/qm -i F3FD79D6DFA76D7E
 ```
 
 ## Greedy search for faster results

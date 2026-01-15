@@ -5,8 +5,8 @@ use std::error::Error;
 use clap::{Arg, Command};
 use logic_minimization::{
     Minterm,
-    check::{sop_string_to_init, sop_to_minterms},
-    format::{binary_strings_from_init_hex, display_sort_minterms, string_for_sop_minterms},
+    convert::{binary_strings_from_init_hex, sop_string_to_init, sop_to_minterms},
+    format::{display_sort_minterms, string_for_sop_minterms},
 };
 
 fn main() -> Result<(), Box<dyn Error>> {

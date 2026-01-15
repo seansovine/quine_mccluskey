@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use rand::Rng;
 
-use logic_minimization::{check::sop_string_to_init, qm_simplify_init, qm_simplify_init_greedy};
+use logic_minimization::{convert::sop_string_to_init, qm_simplify_init, qm_simplify_init_greedy};
 
 const NUM_CASES: usize = 50;
 const USE_GREEDY: bool = true;

@@ -5,7 +5,7 @@ use std::error::Error;
 use clap::{Arg, ArgAction, Command};
 
 use logic_minimization::{
-    check::{init_to_minterms, sop_to_minterms},
+    convert::{init_to_minterms, sop_to_minterms},
     format::{display_sort_minterms, string_for_sop_minterms},
     *,
 };

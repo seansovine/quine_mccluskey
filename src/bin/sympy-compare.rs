@@ -8,8 +8,8 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use logic_minimization::{
     Minterm,
-    check::sop_to_minterms,
-    format::{binary_strings_from_init_hex, string_for_sop_minterms},
+    convert::{binary_strings_from_init_hex, sop_to_minterms},
+    format::string_for_sop_minterms,
     qm_simplify_init,
 };
 

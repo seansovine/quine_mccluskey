@@ -1,43 +1,12 @@
 //! Code to format and display logical expressions.
 
-use std::error::Error;
-
 use crate::Minterm;
+
+// ----------------------------
+// String formatting functions.
 
 // Character for negation in formatted outupt.
 const NEG_CHAR: char = '~';
-
-// ---------------------
-// Conversion functions.
-
-const DEV_DEBUG: bool = false;
-
-/// Convert a hex "init" string to a list of binary term strings.
-pub fn binary_strings_from_init_hex(hex_str: &str) -> Result<Vec<String>, Box<dyn Error>> {
-    const HEX_LEN: usize = 16;
-    if hex_str.len() > HEX_LEN {
-        return Err(String::from("Hex string contains more than 16 hex chars.").into());
-    }
-    let zero_pad: String = std::iter::repeat_n('0', HEX_LEN - hex_str.len()).collect();
-    let hex_str = format!("{zero_pad}{hex_str}");
-    let num: u64 =
-        u64::from_str_radix(&hex_str, 16).expect("String is not a valid 64-bit hex string.");
-
-    if DEV_DEBUG {
-        println!("As binary: {num:064b}");
-    }
-    let mut strings = vec![];
-    for i in 0..64 {
-        let mask: u64 = 1 << i;
-        if mask & num > 0 {
-            if DEV_DEBUG {
-                println!("Term {i:02}: {i:06b}");
-            }
-            strings.push(format!("{i:06b}"));
-        }
-    }
-    Ok(strings)
-}
 
 // Sort minterms nicely for canonical display.
 
@@ -59,9 +28,6 @@ pub fn display_sort_minterms(minterms: &mut [Minterm]) {
         tuple
     });
 }
-
-// ----------------------------
-// String formatting functions.
 
 const EQN_VARS: &[char] = &['A', 'B', 'C', 'D', 'E', 'F'];
 
