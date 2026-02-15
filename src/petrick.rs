@@ -1,5 +1,5 @@
 // Implement Petrick's method to get a minimal sum-of-products
-// from a prime implicants chart.
+// from a prime implicant chart.
 //
 // The discussion here was helpful in understanding how to implement this:
 //   https://math.stackexchange.com/a/4992057/198658
@@ -15,8 +15,8 @@ use super::{Minterm, PrimeImplicateChart};
 // --------------------------------------------
 // Bit vector type for use in Petrick's method.
 
-/// Bit vector representing a set of essential prime implicants.
-/// For use in applying Petrick's method to a prime implicant chart.
+/// Bit vector representing a set of essential prime implicants,
+/// for use in applying Petrick's method to a prime implicant chart.
 #[derive(Clone, Copy, Default)]
 struct BitVec {
     bits: u64,
@@ -69,13 +69,12 @@ impl BitVec {
         nonzero_indices
     }
 
-    #[allow(unused)]
     pub fn is_subset(&self, other: &BitVec) -> bool {
         self.bits & other.bits == self.bits
     }
 }
 
-/// Represents sequence of bit vectors w/ the same # of 1's.
+/// Represents a sequence of bit vectors w/ the same # of 1's.
 struct OnesGroup {
     n_ones: u32,
     start_offset: usize,
@@ -112,6 +111,7 @@ impl BitVec {
         bit_vecs
     }
 
+    /// Sort bit vectors first by number of bits, then in dictionary order.
     pub fn bitsort(bitvecs: &mut [BitVec]) -> Vec<OnesGroup> {
         bitvecs.sort_by(|a, b| {
             if (a.count_ones()) < (b.count_ones()) {
@@ -142,7 +142,7 @@ impl BitVec {
 // ----------------------------------------
 // Functions implementing Petrick's method.
 
-/// Get a minimal set of prime implicants for an equivalent expression.
+/// Compute a minimal set of prime implicants from a prime implicant chart.
 pub fn get_minimal_sop_terms(
     mut prime_impl_chart: PrimeImplicateChart,
     mut prime_impls: Vec<Minterm>,
@@ -194,7 +194,8 @@ pub fn get_minimal_sop_terms(
 }
 
 /// Computes the logical 'and' to build up a set of prime implicants
-/// covering all the columns of a prime implicant chart.
+/// covering all the columns of a prime implicant chart. This is applying
+/// the logical distributive property using a bit vector representation.
 ///
 /// **Note:** The actual bitwise operation performed on bit vectors is
 /// the logical 'or', because a bit vector is interpreted as the 'and'
@@ -252,19 +253,20 @@ fn remove_redundant(bitvecs: &mut Vec<BitVec>, time: &mut PetrickTimeInfo) {
             .position(|OnesGroup { n_ones, .. }| *n_ones == bitvec_i.count_ones())
             .unwrap();
         for j in ones_group_start[ogs_n + 1].start_offset..bitvecs.len() {
-            if !to_remove[j] && (bitvecs[i].bits & bitvecs[j].bits == bitvecs[i].bits) {
+            if !to_remove[j] && bitvecs[i].is_subset(&bitvecs[j]) {
                 to_remove[j] = true;
             }
         }
     }
     time.remove_redundant_first_loop += start_inner.elapsed();
 
-    // Remove redundant bitvecs.
-    for i in (0..bitvecs.len()).rev() {
-        if to_remove[i] {
-            bitvecs.remove(i);
-        }
-    }
+    // Keep only non-redundant bitvecs.
+    *bitvecs = bitvecs
+        .iter()
+        .enumerate()
+        .filter_map(|(i, vec)| if !to_remove[i] { Some(vec) } else { None })
+        .copied()
+        .collect();
     time.remove_redundant += start.elapsed();
 }
 
@@ -278,8 +280,8 @@ enum RowCount {
 /// Removes essential prime implicants from list and chart and returns them as a vec,
 /// along with a list of indices for columns that weren't eliminated in the process.
 ///
-/// An essential prime implicants is one which is the only prime implicant covering
-/// some column in the prime implicant chart.
+/// An prime implicant is essential when it is the only one covering one of the columns
+/// in the prime implicant chart.
 ///
 /// Modifies `prime_impls` and `prime_impl_chart`.
 pub fn remove_essential_prime_impls(
@@ -295,7 +297,7 @@ pub fn remove_essential_prime_impls(
     // where a column is covered by only a single essential row.
     let mut remove_cols: Vec<RowCount> = vec![RowCount::None; num_cols];
 
-    // Find essential prime implicants and corresponding columns.
+    // Find essential prime implicants and corresponding chart columns.
     for (row_i, row) in prime_impl_chart.rows.iter().enumerate() {
         for (col_i, row_col_val) in row.iter().copied().enumerate() {
             if row_col_val {
@@ -308,9 +310,9 @@ pub fn remove_essential_prime_impls(
         }
     }
 
-    // Records if each prime implicant is essential.
+    // Records whether each prime implicant is essential.
     let mut is_essential = vec![false; prime_impls.len()];
-    // Columns that are covered by a prime impilcant.
+    // Records whether each columns that is covered by a prime implicant.
     let mut covered_by_prime = vec![false; num_cols];
 
     // Mark essential prime implicants and columns they cover.
