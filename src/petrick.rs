@@ -312,7 +312,7 @@ pub fn remove_essential_prime_impls(
 
     // Records whether each prime implicant is essential.
     let mut is_essential = vec![false; prime_impls.len()];
-    // Records whether each columns that is covered by a prime implicant.
+    // Records whether each column is covered by a prime implicant.
     let mut covered_by_prime = vec![false; num_cols];
 
     // Mark essential prime implicants and columns they cover.

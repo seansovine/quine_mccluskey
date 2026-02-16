@@ -189,7 +189,7 @@ impl std::fmt::Debug for PrimeImplicateChart {
                 }
             }
         }
-        // Write bottom row with for each col itscol #; or * / R for
+        // Write bottom row with for each col its col #; or * / R for
         // essential prime implicate columns / columns with no support.
         write!(f, "---")?;
         for (i, num) in num_rows.iter().enumerate() {

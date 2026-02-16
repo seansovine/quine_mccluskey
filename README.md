@@ -112,7 +112,7 @@ things:
 
 1. Always produce as output a function that is equivalent to its input.
 
-2. Produce an output that has the fewest terms among all such functions
+2. Produce an output that has the fewest terms among all such functions.
 
 Here equivalent means that the two functions give the same outputs for the same inputs.
 We have a utility program for testing each of these two conditions using randomly-generated
@@ -122,11 +122,11 @@ to the code, and they help give confidence in its results.
 ### Round-trip testing
 
 The program `test-round-trip.rs` generates a sequence of random boolean functions in the form of
-hex init strings. Then it simplifes each of these functions to produce a sum-of-products, and
+hex init strings. Then it simplifies each of these functions to produce a sum-of-products, and
 converts the simplified sum-of-products
 back to the init string format. It's fairly straightforward to convert a sum-of-products
 representation to an equivalent init string; you might call this process "un-minimization". Then
-the simplifed function will be equivalent to the original input function exactly when the back-converted
+the simplified function will be equivalent to the original input function exactly when the back-converted
 init string is the same as the original init string. The program checks each generated example for
 this equivalence.
 
@@ -136,16 +136,20 @@ for more complex functions is a difficult problem, and more sophisticated tools 
 
 ### Comparison with a well-established library
 
-The SymPy Python library has a module that simplifes boolean functions using the Quine-McCluskey
+The SymPy Python library has a module that simplifies boolean functions using the Quine-McCluskey
 algorithm. SymPy is a well-established library, so it can be regarded as a reliable
 source of truth to compare our results to.
 We provide a program `sympy-compare.rs` to compare the results of this implementation to that of
 SymPy. This program randomly generates a sequence of boolean functions, which are then simplified
 with both SymPy and with the our implementation. There can be multiple equivalent minimal
 functions for a given input, but we can confirm the minimality of our results by comparing the
-number of terms they contain to the number of terms in the results from Sympy.
+number of terms they contain to the number of terms in the results from SymPy.
 
 \* It appears that SymPy falls back to an approximate approach in some cases. This is fair
 because the purpose of their function `to_dnf` that we're using is to convert an expression
 to disjunctive normal form (a.k.a. sum-of-products), and minimization is just a side effect of
 the process.
+
+### License
+
+This code is released under the MIT license.
