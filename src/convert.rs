@@ -73,6 +73,7 @@ const ALLOWED_VARS: &[char] = &['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 fn parse_product(prod_str: &str) -> Minterm {
     let mut minterm = Minterm {
         values: vec![b'x', b'x', b'x', b'x', b'x', b'x'],
+        ..Default::default()
     };
     let mut prod_ref = prod_str;
     if !prod_str.starts_with('(') {

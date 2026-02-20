@@ -10,7 +10,7 @@ use std::{collections::HashSet, error::Error};
 
 use crate::{
     convert::binary_strings_from_init_hex,
-    format::{display_sort_minterms, string_for_sop_minterms},
+    format::{FormattedExpr, display_sort_minterms, string_for_sop_minterms},
     petrick::PetrickTimeInfo,
 };
 
@@ -22,8 +22,11 @@ pub fn qm_simplify(minterms: &[Minterm]) -> (String, usize, PetrickTimeInfo) {
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, minterms);
     let (mut minimal_sops, time) = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
     display_sort_minterms(&mut minimal_sops);
-    let message = string_for_sop_minterms(&minimal_sops, true, Some(" "));
-    (message, minimal_sops.len(), time)
+    let FormattedExpr {
+        minterm_expr: sop_string,
+        ..
+    } = string_for_sop_minterms(&minimal_sops, true, Some(" "));
+    (sop_string, minimal_sops.len(), time)
 }
 
 pub fn qm_simplify_init(
@@ -43,7 +46,9 @@ pub fn qm_simplify_greedy(minterms: &[Minterm]) -> (String, usize) {
     let mut minimal_sops = greedy_min_sop::get_minimal_sops(prime_impl_chart, prime_impls);
     display_sort_minterms(&mut minimal_sops);
     (
-        string_for_sop_minterms(&minimal_sops, true, Some(" ")),
+        string_for_sop_minterms(&minimal_sops, true, Some(" "))
+            .sop_string()
+            .into(),
         minimal_sops.len(),
     )
 }
@@ -60,16 +65,26 @@ pub fn qm_simplify_init_greedy(init_str: &str) -> Result<(String, usize), Box<dy
 // ------------------
 // Minterm structure.
 
-#[derive(Hash, Clone, PartialEq, Eq)]
+#[derive(Hash, Clone, PartialEq, Eq, Default)]
 pub struct Minterm {
     values: Vec<u8>,
+    dont_care: bool,
 }
 
 impl Minterm {
+    /// Result will have `dont_care == false`.
     pub fn merge(&self, other: &Minterm, first_diff: usize) -> Minterm {
-        let mut outterm = other.clone();
-        outterm.values[first_diff] = b'x';
-        outterm
+        let mut out_term = other.clone();
+        out_term.values[first_diff] = b'x';
+        out_term.dont_care = false;
+        out_term
+    }
+
+    pub fn dont_care(values: &str) -> Self {
+        Minterm {
+            values: values.into(),
+            dont_care: true,
+        }
     }
 }
 
@@ -83,6 +98,7 @@ impl From<&str> for Minterm {
     fn from(values: &str) -> Self {
         Minterm {
             values: values.into(),
+            dont_care: false,
         }
     }
 }
@@ -119,7 +135,7 @@ pub fn get_prime_implicants(minterms: &[Minterm]) -> HashSet<Minterm> {
         display_sort_minterms(&mut current_terms);
         println!(
             "\nAfter merge operation:\n  {}",
-            string_for_sop_minterms(&current_terms, false, Some("\n"))
+            string_for_sop_minterms(&current_terms, false, Some("\n")).sop_string()
         );
     }
 
@@ -189,8 +205,7 @@ impl std::fmt::Debug for PrimeImplicateChart {
                 }
             }
         }
-        // Write bottom row with for each col its col #; or * / R for
-        // essential prime implicate columns / columns with no support.
+        // Write bottom row with a symbol describing each column's support.
         write!(f, "---")?;
         for (i, num) in num_rows.iter().enumerate() {
             if *num == 1 {
@@ -219,32 +234,49 @@ pub fn create_prime_implicant_chart(
     prime_impls: &[Minterm],
     minterms: &[Minterm],
 ) -> PrimeImplicateChart {
+    // Filter out don't care minterms; they aren't needed from here on.
+    let minterms: Vec<Minterm> = minterms
+        .iter()
+        .filter_map(|minterm| {
+            if minterm.dont_care {
+                None
+            } else {
+                Some(minterm.clone())
+            }
+        })
+        .collect();
+
     let mut prime_impl_chart = vec![vec![false; minterms.len()]; prime_impls.len()];
     for (i, row) in prime_impl_chart.iter_mut().enumerate() {
-        set_matches(&prime_impls[i], minterms, row);
+        compute_row(&prime_impls[i], &minterms, row);
     }
-
     PrimeImplicateChart {
         rows: prime_impl_chart,
     }
 }
 
-fn check_match(minterm_1: &Minterm, minterm_2: &Minterm) -> bool {
-    assert!(minterm_1.values.len() == minterm_2.values.len());
-    for i in 0..minterm_1.values.len() {
-        if minterm_1.values[i] == b'x' {
+/// Check if the minterm implies the prime implicant.
+///
+/// Note that by construction each prime implicant implies one or more terms in
+/// the original expression. Our goal here is to find the prime implicants needed
+/// to imply all of those terms.
+fn check_includes(prime_implicant: &Minterm, minterm: &Minterm) -> bool {
+    assert!(prime_implicant.values.len() == minterm.values.len());
+    for i in 0..prime_implicant.values.len() {
+        if prime_implicant.values[i] == b'x' {
             continue;
         }
-        if minterm_1.values[i] != minterm_2.values[i] {
+        if prime_implicant.values[i] != minterm.values[i] {
             return false;
         }
     }
     true
 }
 
-fn set_matches(patt_term: &Minterm, minterms: &[Minterm], matches: &mut [bool]) {
+/// Compute one row of the prime implicant chart.
+fn compute_row(prime_implicants: &Minterm, minterms: &[Minterm], matches: &mut [bool]) {
     assert!(minterms.len() == matches.len());
     for (i, minterm) in minterms.iter().enumerate() {
-        matches[i] = check_match(patt_term, minterm);
+        matches[i] = check_includes(prime_implicants, minterm);
     }
 }

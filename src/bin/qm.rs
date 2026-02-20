@@ -6,7 +6,7 @@ use clap::{Arg, ArgAction, Command};
 
 use logic_minimization::{
     convert::{init_to_minterms, sop_to_minterms},
-    format::{display_sort_minterms, string_for_sop_minterms},
+    format::{FormattedExpr, display_sort_minterms, string_for_sop_minterms},
     *,
 };
 
@@ -49,12 +49,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    let FormattedExpr {
+        minterm_expr: minterm_string,
+        dont_cares: dont_care_string,
+    } = string_for_sop_minterms(&minterms, false, Some("\n"));
     display_sort_minterms(&mut minterms);
     println!(
         "Initial expression: ({} terms)\n  {}",
         minterms.len(),
-        string_for_sop_minterms(&minterms, false, Some(SEPARATOR))
+        minterm_string
     );
+    println!("Don't cares:\n  {}", dont_care_string);
 
     let mut prime_impls: Vec<Minterm> = get_prime_implicants(&minterms).into_iter().collect();
 
@@ -62,7 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!(
         "\nEquivalent expression from prime implicants ({} terms):\n  {}",
         prime_impls.len(),
-        string_for_sop_minterms(&prime_impls, false, Some(SEPARATOR))
+        string_for_sop_minterms(&prime_impls, false, Some(SEPARATOR)).sop_string()
     );
 
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, &minterms);
@@ -81,7 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!(
         "\nA minimal equivalent expression: ({} terms)\n  {}",
         minimal_sops.len(),
-        string_for_sop_minterms(&minimal_sops, true, Some(SEPARATOR))
+        string_for_sop_minterms(&minimal_sops, true, Some(SEPARATOR)).sop_string()
     );
 
     Ok(())

@@ -9,7 +9,7 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use logic_minimization::{
     Minterm,
     convert::{binary_strings_from_init_hex, sop_to_minterms},
-    format::string_for_sop_minterms,
+    format::{FormattedExpr, string_for_sop_minterms},
     qm_simplify_init,
 };
 
@@ -44,7 +44,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .iter()
             .map(|s| (&**s).into())
             .collect::<Vec<Minterm>>();
-        let sop_string = string_for_sop_minterms(&minterms, true, Some(" "));
+        let FormattedExpr {
+            minterm_expr: sop_string,
+            ..
+        } = string_for_sop_minterms(&minterms, true, Some(" "));
         let python_script = TEMPLATE.replace("{}", &sop_string);
         if DEV_DEBUG {
             println!("{python_script}");

@@ -45,7 +45,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             .iter()
             .map(|s| (&**s).into())
             .collect::<Vec<Minterm>>();
-        let sop_string = string_for_sop_minterms(&minterms, true, Some("\n"));
+        let sop_string = string_for_sop_minterms(&minterms, true, Some("\n"))
+            .sop_string()
+            .to_owned();
         println!(
             "SoP string for init: ({} terms)\n  {sop_string}",
             minterms.len()
@@ -55,7 +57,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Some(sop_string) = matches.get_one::<String>("format-sop") {
         let mut minterms = sop_to_minterms(sop_string);
         display_sort_minterms(&mut minterms);
-        let sop_string = string_for_sop_minterms(&minterms, true, Some("\n"));
+        let sop_string = string_for_sop_minterms(&minterms, true, Some("\n"))
+            .sop_string()
+            .to_owned();
         println!(
             "Formatted SoP string: ({} terms)\n  {sop_string}",
             minterms.len()

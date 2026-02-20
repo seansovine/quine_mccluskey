@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!(
         "\nA minimal equivalent expression: ({} terms)\n  {}",
         minimal_sops.len(),
-        string_for_sop_minterms(&minimal_sops, true, Some("\n"))
+        string_for_sop_minterms(&minimal_sops, true, Some("\n")).sop_string()
     );
 
     Ok(())
