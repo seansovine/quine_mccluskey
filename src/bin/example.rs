@@ -11,14 +11,15 @@ use logic_minimization::{
 
 fn main() {
     let minterms: Vec<Minterm> = vec![
-        "0010".into(),
-        "0001".into(),
-        Minterm::dont_care("1001"),
-        "0101".into(),
-        "1101".into(),
-        "0011".into(),
-        Minterm::dont_care("0111"),
-        "1111".into(),
+        "0010".into(), // ~A & B & ~C & ~D
+        "0001".into(), // A & ~B & ~C & ~D
+        "0101".into(), // A & ~B & C & ~D
+        "1101".into(), // A & ~B & C & D
+        "0011".into(), // A & B & ~C & ~D
+        "1111".into(), // A & B & C & D
+        // Don't care terms.
+        Minterm::dont_care("0111"), // A & B & C & ~D
+        Minterm::dont_care("1001"), // A & ~B & ~C & D
     ];
 
     let FormattedExpr {

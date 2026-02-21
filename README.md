@@ -39,42 +39,61 @@ A minimal equivalent expression:
 An example of the API usage:
 
 ```rust
-use logic_minimization::*;
+//! Example of initial expression with "don't care" terms.
+//!
+//! This is the example from Wikipedia, but note that our binary strings
+//! map to the variable letter names in reverse order from theirs.
+
+use logic_minimization::{
+    Minterm, create_prime_implicant_chart,
+    format::{FormattedExpr, display_sort_minterms, string_for_sop_minterms},
+    get_prime_implicants, petrick,
+};
 
 fn main() {
-    // Function to simplify: (~C & B) | (C & B) | (~B & A) | (~B & ~A) | C.
     let minterms: Vec<Minterm> = vec![
-        "01x".into(), // ~C &  B
-        "11x".into(), //  C &  B
-        "x01".into(), // ~B &  A
-        "x00".into(), // ~B & ~A
-        "1xx".into(), //  C
+        "0010".into(), // ~A & B & ~C & ~D
+        "0001".into(), // A & ~B & ~C & ~D
+        "0101".into(), // A & ~B & C & ~D
+        "1101".into(), // A & ~B & C & D
+        "0011".into(), // A & B & ~C & ~D
+        "1111".into(), // A & B & C & D
+        // Don't care terms.
+        Minterm::dont_care("0111"), // A & B & C & ~D
+        Minterm::dont_care("1001"), // A & ~B & ~C & D
     ];
 
-    // Or from sum-of-products string:
-    let minterms = sop_to_minterms("(~C & B) | (C & B) | (~B & A) | (~B & ~A) | C");
+    {
+        // Or from sum-of-products string, if no don't care terms.
+        let minterms_2 = sop_to_minterms("(~C & B) | (C & B) | (~B & A) | (~B & ~A) | C");
+        // Or from hex init string, if no don't care terms.
+        let minterms_3 = init_to_minterms("BDBDBDBDBDBDBDBD")?;
+    }
 
-    // Or from hex init string:
-    let minterms = init_to_minterms("BDBDBDBDBDBDBDBD")?;
+    let FormattedExpr {
+        minterm_expr: minterm_string,
+        dont_cares: dont_care_string,
+    } = string_for_sop_minterms(&minterms, false, Some("\n"));
 
+    println!("Initial expression:\n  {}", minterm_string);
+    println!("\nDon't cares:\n {}", dont_care_string);
+
+    let mut prime_impls: Vec<Minterm> = get_prime_implicants(&minterms).into_iter().collect();
+
+    display_sort_minterms(&mut prime_impls);
     println!(
-        "Initial expression:\n  {}",
-        string_for_sop_minterms(&minterms, false)
-    );
-
-    let prime_impls: Vec<Minterm> = get_prime_implicants(&minterms).into_iter().collect();
-
-    println!(
-        "Equivalent expression from prime implicants:\n  {}",
-        string_for_sop_minterms(&prime_impls, false)
+        "\nEquivalent expression from prime implicants:\n  {}",
+        string_for_sop_minterms(&prime_impls, false, Some("\n")).sop_string()
     );
 
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, &minterms);
-    let minimal_sop_terms = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
+    let (mut minimal_sop_terms, _) = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
 
+    display_sort_minterms(&mut minimal_sop_terms);
     println!(
-        "A minimal equivalent expression:\n  {}",
-        string_for_sop_minterms(&minimal_sop_terms, true)
+        "\nA minimal equivalent expression ({} terms):\n  {}",
+        minimal_sop_terms.len(),
+        string_for_sop_minterms(&minimal_sop_terms, true, Some("\n")).sop_string()
     );
 }
 ```
@@ -141,7 +160,7 @@ algorithm. SymPy is a well-established library, so it can be regarded as a relia
 source of truth to compare our results to.
 We provide a program `sympy-compare.rs` to compare the results of this implementation to that of
 SymPy. This program randomly generates a sequence of boolean functions, which are then simplified
-with both SymPy and with the our implementation. There can be multiple equivalent minimal
+with both SymPy and with our implementation. There can be multiple equivalent minimal
 functions for a given input, but we can confirm the minimality of our results by comparing the
 number of terms they contain to the number of terms in the results from SymPy.
 
