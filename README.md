@@ -64,10 +64,10 @@ fn main() {
     ];
 
     {
-        // Or from sum-of-products string, if no don't care terms.
-        let minterms_2 = sop_to_minterms("(~C & B) | (C & B) | (~B & A) | (~B & ~A) | C");
-        // Or from hex init string, if no don't care terms.
-        let minterms_3 = init_to_minterms("BDBDBDBDBDBDBDBD")?;
+        // Or from sum-of-products string.
+        let minterms = sop_to_minterms("(~C & B) | (C & B) | (~B & A) | (~B & ~A) | C");
+        // Or from hex init string.
+        let minterms = init_to_minterms("BDBDBDBDBDBDBDBD").unwrap();
     }
 
     let FormattedExpr {

@@ -14,8 +14,8 @@ use crate::{
     petrick::PetrickTimeInfo,
 };
 
-// ------------------------
-// Top-level API functions.
+// ---------------------------
+// Higher-level API functions.
 
 pub fn qm_simplify(minterms: &[Minterm]) -> (String, usize, PetrickTimeInfo) {
     let prime_impls: Vec<Minterm> = get_prime_implicants(minterms).into_iter().collect();
@@ -257,9 +257,11 @@ pub fn create_prime_implicant_chart(
 
 /// Check if the minterm implies the prime implicant.
 ///
-/// Note that by construction each prime implicant implies one or more terms in
-/// the original expression. Our goal here is to find the prime implicants needed
-/// to imply all of those terms.
+/// Note that by construction each prime implicant is the logical 'or' of one or
+/// more terms in the initial expression. Our goal in QM is to find a minimal set
+/// of prime implicants whose logical 'or' is equivalent to the initial expression.
+/// This function checks if the logical 'or' that makes up `prime_implicant`
+/// includes `minterm`.
 fn check_includes(prime_implicant: &Minterm, minterm: &Minterm) -> bool {
     assert!(prime_implicant.values.len() == minterm.values.len());
     for i in 0..prime_implicant.values.len() {
