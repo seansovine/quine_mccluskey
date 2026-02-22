@@ -4,9 +4,10 @@
 // The implementation was inspired by this discussion:
 //   https://math.stackexchange.com/a/4992057/198658
 
-use std::cmp::Ordering;
-
 use super::{Minterm, PrimeImplicateChart};
+
+use rayon::prelude::*;
+use std::cmp::Ordering;
 
 // --------------------------------------------
 // Bit vector type for use in Petrick's method.
@@ -160,25 +161,38 @@ pub fn get_minimal_sop_terms(
         return min_expr_terms;
     }
 
-    let column_bitvecs = remaining_cols
+    let mut column_bitvecs = remaining_cols
         .into_iter()
         .map(|rem_col_i| BitVec::bitvecs_from_chart_col(&prime_impl_chart, rem_col_i))
         .filter(|vecs| !vecs.is_empty())
         .collect::<Vec<_>>();
 
-    // Simplify remaining terms with boolean logic rules.
-    let mut current_bitvecs: Vec<BitVec> = vec![BitVec::default()];
-    for (i, next_col_bitvecs) in column_bitvecs.iter().enumerate() {
-        current_bitvecs = pairwise_and(&current_bitvecs, next_col_bitvecs);
-        if i < column_bitvecs.len() - 1 {
-            remove_redundant(&mut current_bitvecs);
-        }
+    // Apply distributive property to column sets pairwise.
+    while column_bitvecs.len() > 1 {
+        let num_sets = column_bitvecs.len();
+        column_bitvecs.par_chunks_mut(2).for_each(|chunk| {
+            if chunk.len() == 1 {
+                return;
+            }
+            let mut updated = pairwise_and(&chunk[0], &chunk[1]);
+            if num_sets > 2 {
+                remove_redundant(&mut updated);
+            }
+            chunk[0] = updated;
+        });
+        column_bitvecs = column_bitvecs
+            .into_iter()
+            .enumerate()
+            .filter_map(|(i, vec)| if i.is_multiple_of(2) { Some(vec) } else { None })
+            .collect();
     }
+    let current_bitvecs = &mut column_bitvecs[0];
 
-    let ones_group_start = BitVec::bitsort(&mut current_bitvecs);
+    let ones_group_start = BitVec::bitsort(current_bitvecs);
     if DEV_DEBUG {
-        println!("{:<7} - {ones_group_start:?}", current_bitvecs.len());
-        println!("# essential prime implicants: {}", min_expr_terms.len());
+        println!("Final expression set:");
+        println!(" {:<7} - {ones_group_start:?}", current_bitvecs.len());
+        println!(" # essential prime implicants: {}", min_expr_terms.len());
     }
 
     let chosen_min_bitvec = current_bitvecs.first().unwrap();
@@ -221,7 +235,11 @@ fn remove_redundant(bitvecs: &mut Vec<BitVec>) {
 
     let ones_group_start = BitVec::bitsort(bitvecs);
     if DEV_DEBUG {
-        println!("{:<7} - {ones_group_start:?}", bitvecs.len());
+        println!(
+            "Merging on thread {}.\n {:<7} - {ones_group_start:?}",
+            rayon::current_thread_index().unwrap_or_default(),
+            bitvecs.len()
+        );
     }
 
     // Find redundant bitvecs. This is the main bottleneck of the program.
