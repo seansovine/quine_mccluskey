@@ -79,7 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  Sympy result has {} minterms.", sympy_minterms.len());
 
         // Simplify with our code and count terms.
-        let (_, rust_num_minterms, _) =
+        let (_, rust_num_minterms) =
             qm_simplify_init(&init_string).expect("Init conversion failed.");
         println!("  Rust Q-M result has {rust_num_minterms} minterms.");
 

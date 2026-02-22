@@ -79,7 +79,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut minimal_sops = if use_greedy {
         greedy_min_sop::get_minimal_sops(prime_impl_chart, prime_impls)
     } else {
-        petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls).0
+        petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls)
     };
 
     display_sort_minterms(&mut minimal_sops);

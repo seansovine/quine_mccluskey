@@ -100,7 +100,7 @@ fn timed_qm(init_str: &str, greedy: bool) -> (String, usize, u128) {
     let (sop_string, num_minterms) = if greedy {
         qm_simplify_init_greedy(init_str).expect("Init conversion failed.")
     } else {
-        let (sop_string, num_minterms, _time) =
+        let (sop_string, num_minterms) =
             qm_simplify_init(init_str).expect("Init conversion failed.");
         (sop_string, num_minterms)
     };

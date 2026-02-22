@@ -39,7 +39,7 @@ fn main() {
     );
 
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, &minterms);
-    let (mut minimal_sop_terms, _) = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
+    let mut minimal_sop_terms = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
 
     display_sort_minterms(&mut minimal_sop_terms);
     println!(

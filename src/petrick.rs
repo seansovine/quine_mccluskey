@@ -1,22 +1,20 @@
-// Implement Petrick's method to get a minimal sum-of-products
-// from a prime implicant chart.
+// Implements Petrick's method to get a minimal sum-of-products
+// from a prime implicant chart for a boolean function.
 //
-// The discussion here was helpful in understanding how to implement this:
+// The implementation was inspired by this discussion:
 //   https://math.stackexchange.com/a/4992057/198658
 
-use std::{
-    cmp::Ordering,
-    fmt::Write,
-    time::{Duration, Instant},
-};
+use std::cmp::Ordering;
 
 use super::{Minterm, PrimeImplicateChart};
 
 // --------------------------------------------
 // Bit vector type for use in Petrick's method.
 
-/// Bit vector representing a set of essential prime implicants,
-/// for use in applying Petrick's method to a prime implicant chart.
+/// Bit vector representing a set of essential prime implicants, for
+/// use in applying Petrick's method to a prime implicant chart.
+///
+/// Bit i will be 1 iff the set represented contains the ith implicant.
 #[derive(Clone, Copy, Default)]
 struct BitVec {
     bits: u64,
@@ -75,6 +73,9 @@ impl BitVec {
 }
 
 /// Represents a sequence of bit vectors w/ the same # of 1's.
+///
+/// `start_offset` gives the starting offset of bit vectors with
+/// n 1's in a list of bit vectors sorted by # of 1's.
 struct OnesGroup {
     n_ones: u32,
     start_offset: usize,
@@ -82,24 +83,19 @@ struct OnesGroup {
 
 impl std::fmt::Debug for OnesGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}, {}", self.n_ones, self.start_offset)
+        write!(f, "({}: {})", self.n_ones, self.start_offset)
     }
 }
 
 impl BitVec {
-    pub fn bitvecs_from_chart_col(
-        prime_impl_chart: &PrimeImplicateChart,
-        col: usize,
-        time: &mut PetrickTimeInfo,
-    ) -> Vec<Self> {
-        let start = Instant::now();
+    pub fn bitvecs_from_chart_col(prime_impl_chart: &PrimeImplicateChart, col: usize) -> Vec<Self> {
         let rows = &prime_impl_chart.rows;
         if rows.is_empty() {
             return Default::default();
         }
         assert!(rows.first().unwrap().len() > col);
-
         let mut bit_vecs = vec![];
+
         for (i, row) in rows.iter().enumerate() {
             if row[col] {
                 let mut bit_vec = BitVec::default();
@@ -107,13 +103,13 @@ impl BitVec {
                 bit_vecs.push(bit_vec);
             }
         }
-        time.bitvecs_from_chart_cols += start.elapsed();
         bit_vecs
     }
 
     /// Sort bit vectors first by number of bits, then in dictionary order.
     pub fn bitsort(bitvecs: &mut [BitVec]) -> Vec<OnesGroup> {
         bitvecs.sort_by(|a, b| {
+            // First sort by # of 1-bits.
             if (a.count_ones()) < (b.count_ones()) {
                 return Ordering::Less;
             }
@@ -146,51 +142,44 @@ impl BitVec {
 pub fn get_minimal_sop_terms(
     mut prime_impl_chart: PrimeImplicateChart,
     mut prime_impls: Vec<Minterm>,
-) -> (Vec<Minterm>, PetrickTimeInfo) {
+) -> Vec<Minterm> {
+    assert!(prime_impls.len() == prime_impl_chart.rows.len());
     if prime_impl_chart.rows.is_empty() || prime_impl_chart.rows.first().unwrap().is_empty() {
-        // Ok to panic here because this condition indicates programmer error.
         panic!("Prime implicant chart has either no rows or no columns.");
     }
-    // This version currently supports at most 6-variables, but could be extended.
-    assert!(prime_impls.len() == prime_impl_chart.rows.len());
+    // This version currently supports at most 6 variables, but could be extended.
     assert!(prime_impl_chart.rows.first().unwrap().len() <= 64);
-
-    let mut time = PetrickTimeInfo::default();
 
     // Remove essential prime implicants from chart.
     let (mut min_expr_terms, remaining_cols) =
-        remove_essential_prime_impls(&mut prime_impl_chart, &mut prime_impls, Some(&mut time));
+        remove_essential_prime_impls(&mut prime_impl_chart, &mut prime_impls);
     if remaining_cols.is_empty() {
         // Indicates all prime impls were essential, so we're done.
-        return (min_expr_terms, time);
+        return min_expr_terms;
     }
+
+    let column_bitvecs = remaining_cols
+        .into_iter()
+        .map(|rem_col_i| BitVec::bitvecs_from_chart_col(&prime_impl_chart, rem_col_i))
+        .filter(|vecs| !vecs.is_empty())
+        .collect::<Vec<_>>();
 
     // Simplify remaining terms with boolean logic rules.
     let mut current_bitvecs: Vec<BitVec> = vec![BitVec::default()];
-    let col_bitvecs = remaining_cols
-        .into_iter()
-        .map(|rem_col_i| BitVec::bitvecs_from_chart_col(&prime_impl_chart, rem_col_i, &mut time))
-        .filter(|vecs| !vecs.is_empty())
-        .collect::<Vec<_>>();
-    let start = Instant::now();
-    for (i, next_col_bitvecs) in col_bitvecs.iter().enumerate() {
-        time.pairwise_and_calls += 1;
-        current_bitvecs = pairwise_and(&current_bitvecs, next_col_bitvecs, &mut time);
-        if i < col_bitvecs.len() - 1 {
-            remove_redundant(&mut current_bitvecs, &mut time);
+    for (i, next_col_bitvecs) in column_bitvecs.iter().enumerate() {
+        current_bitvecs = pairwise_and(&current_bitvecs, next_col_bitvecs);
+        if i < column_bitvecs.len() - 1 {
+            remove_redundant(&mut current_bitvecs);
         }
     }
-    time.first_loop += start.elapsed();
 
-    let start = Instant::now();
     let _ = BitVec::bitsort(&mut current_bitvecs);
     let chosen_min_bitvec = current_bitvecs.first().unwrap();
     for i in chosen_min_bitvec.nonzero_indices() {
         min_expr_terms.push(prime_impls.get(i).unwrap().clone());
     }
-    time.second_loop += start.elapsed();
 
-    (min_expr_terms, time)
+    min_expr_terms
 }
 
 /// Computes the logical 'and' to build up a set of prime implicants
@@ -200,12 +189,7 @@ pub fn get_minimal_sop_terms(
 /// **Note:** The actual bitwise operation performed on bit vectors is
 /// the logical 'or', because a bit vector is interpreted as the 'and'
 /// of the terms corresponding to its nonzero digits.
-fn pairwise_and(
-    current_bitvecs: &[BitVec],
-    next_col_bitvecs: &[BitVec],
-    time: &mut PetrickTimeInfo,
-) -> Vec<BitVec> {
-    let start = Instant::now();
+fn pairwise_and(current_bitvecs: &[BitVec], next_col_bitvecs: &[BitVec]) -> Vec<BitVec> {
     let mut merged_bitvecs = vec![];
     for c_bitvec in current_bitvecs {
         for n_bitvec in next_col_bitvecs {
@@ -214,51 +198,48 @@ fn pairwise_and(
             merged_bitvecs.push(new_bitvec);
         }
     }
-
-    // Sort and deduplicate.
     let _ = BitVec::bitsort(&mut merged_bitvecs);
     merged_bitvecs.dedup();
-    time.pairwise_and += start.elapsed();
     merged_bitvecs
 }
 
 const DEV_DEBUG: bool = false;
 
 /// Remove bitvecs that are subsumed by others in the set.
-/// As a side effect, sorts reduced `bitvecs`.
+/// As a side effect, sorts the reduced `bitvecs`.
 ///
 /// Precondition: `bitvecs` has been sorted and deduplicated.
-fn remove_redundant(bitvecs: &mut Vec<BitVec>, time: &mut PetrickTimeInfo) {
+fn remove_redundant(bitvecs: &mut Vec<BitVec>) {
     if bitvecs.is_empty() {
         return;
     }
-    let start = Instant::now();
-    let ones_group_start = BitVec::bitsort(bitvecs);
-    let mut to_remove = vec![false; bitvecs.len()];
 
+    let ones_group_start = BitVec::bitsort(bitvecs);
     if DEV_DEBUG {
-        println!("{ones_group_start:?} - {}", bitvecs.len());
+        println!("{:<7} - {ones_group_start:?}", bitvecs.len());
     }
 
-    // Find redundant bitvecs.
-    let start_inner = Instant::now();
+    // Find redundant bitvecs. This is the main bottleneck of the program.
+    let mut to_remove = vec![false; bitvecs.len()];
     for i in 0..ones_group_start.last().unwrap().start_offset {
         // If we removed bitvec i, then we'd have removed its supersets also.
         if to_remove[i] {
             continue;
         }
+
         let bitvec_i = &bitvecs[i];
-        let ogs_n = ones_group_start
+        let ones_group_i = ones_group_start
             .iter()
             .position(|OnesGroup { n_ones, .. }| *n_ones == bitvec_i.count_ones())
             .unwrap();
-        for j in ones_group_start[ogs_n + 1].start_offset..bitvecs.len() {
-            if !to_remove[j] && bitvecs[i].is_subset(&bitvecs[j]) {
+
+        // Start checks with next larger size sets.
+        for j in ones_group_start[ones_group_i + 1].start_offset..bitvecs.len() {
+            if !to_remove[j] && bitvec_i.is_subset(&bitvecs[j]) {
                 to_remove[j] = true;
             }
         }
     }
-    time.remove_redundant_first_loop += start_inner.elapsed();
 
     // Keep only non-redundant bitvecs.
     *bitvecs = bitvecs
@@ -267,7 +248,6 @@ fn remove_redundant(bitvecs: &mut Vec<BitVec>, time: &mut PetrickTimeInfo) {
         .filter_map(|(i, vec)| if !to_remove[i] { Some(vec) } else { None })
         .copied()
         .collect();
-    time.remove_redundant += start.elapsed();
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -287,10 +267,9 @@ enum RowCount {
 pub fn remove_essential_prime_impls(
     prime_impl_chart: &mut PrimeImplicateChart,
     prime_impls: &mut Vec<Minterm>,
-    time: Option<&mut PetrickTimeInfo>,
 ) -> (Vec<Minterm>, Vec<usize>) {
+    assert!(!prime_impls.is_empty());
     assert!(prime_impls.len() == prime_impl_chart.rows.len());
-    let start = Instant::now();
     let num_cols = prime_impl_chart.rows.first().unwrap().len();
 
     // Records how many rows cover each column, singling out the case
@@ -326,6 +305,7 @@ pub fn remove_essential_prime_impls(
             panic!("An implicant chart column that was not covered by any row.");
         }
     }
+
     // Keep columns that aren't covered by a prime implicant.
     let mut remaining_cols = vec![];
     for (i, _) in remove_cols.iter().enumerate() {
@@ -358,94 +338,5 @@ pub fn remove_essential_prime_impls(
         }
     }
 
-    if let Some(time) = time {
-        time.remove_essential_prime_impls += start.elapsed();
-    }
     (ess_prime_impls, remaining_cols)
-}
-
-// -----------------------------
-// Timing data for optimization.
-
-#[derive(Default)]
-pub struct PetrickTimeInfo {
-    pub remove_essential_prime_impls: Duration,
-    pub bitvecs_from_chart_cols: Duration,
-
-    pub remove_redundant: Duration,
-    pub remove_redundant_first_loop: Duration,
-
-    pub first_loop: Duration,
-    pub second_loop: Duration,
-
-    pub pairwise_and_calls: u64,
-    pub pairwise_and: Duration,
-}
-
-impl PetrickTimeInfo {
-    pub fn get_report(&self) -> String {
-        let mut message = String::new();
-        writeln!(message, "Petrick run time:").unwrap();
-
-        writeln!(
-            message,
-            "-- remove_essential_prime_impls: {:>5} ms",
-            self.remove_essential_prime_impls.as_millis()
-        )
-        .unwrap();
-
-        writeln!(
-            message,
-            "-- bitvecs_from_chart_cols:      {:>5} ms",
-            self.bitvecs_from_chart_cols.as_millis()
-        )
-        .unwrap();
-
-        writeln!(message).unwrap();
-        writeln!(
-            message,
-            "-- remove_redundant:             {:>5} ms",
-            self.remove_redundant.as_millis()
-        )
-        .unwrap();
-
-        writeln!(
-            message,
-            "-- remove_redundant first loop:  {:>5} ms",
-            self.remove_redundant_first_loop.as_millis()
-        )
-        .unwrap();
-
-        writeln!(message).unwrap();
-        writeln!(
-            message,
-            "-- first loop:                   {:>5} ms",
-            self.first_loop.as_millis()
-        )
-        .unwrap();
-
-        writeln!(
-            message,
-            "-- second loop:                  {:>5} ms",
-            self.second_loop.as_millis()
-        )
-        .unwrap();
-
-        writeln!(message).unwrap();
-        writeln!(
-            message,
-            "-- pairwise_and calls:           {:>5} ",
-            self.pairwise_and_calls
-        )
-        .unwrap();
-
-        write!(
-            message,
-            "-- pairwise_and:                 {:>5} ms",
-            self.pairwise_and.as_millis()
-        )
-        .unwrap();
-
-        message
-    }
 }

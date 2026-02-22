@@ -11,27 +11,24 @@ use std::{collections::HashSet, error::Error};
 use crate::{
     convert::binary_strings_from_init_hex,
     format::{FormattedExpr, display_sort_minterms, string_for_sop_minterms},
-    petrick::PetrickTimeInfo,
 };
 
 // ---------------------------
 // Higher-level API functions.
 
-pub fn qm_simplify(minterms: &[Minterm]) -> (String, usize, PetrickTimeInfo) {
+pub fn qm_simplify(minterms: &[Minterm]) -> (String, usize) {
     let prime_impls: Vec<Minterm> = get_prime_implicants(minterms).into_iter().collect();
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, minterms);
-    let (mut minimal_sops, time) = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
+    let mut minimal_sops = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
     display_sort_minterms(&mut minimal_sops);
     let FormattedExpr {
         minterm_expr: sop_string,
         ..
     } = string_for_sop_minterms(&minimal_sops, true, Some(" "));
-    (sop_string, minimal_sops.len(), time)
+    (sop_string, minimal_sops.len())
 }
 
-pub fn qm_simplify_init(
-    init_str: &str,
-) -> Result<(String, usize, PetrickTimeInfo), Box<dyn Error>> {
+pub fn qm_simplify_init(init_str: &str) -> Result<(String, usize), Box<dyn Error>> {
     let term_strings = binary_strings_from_init_hex(init_str)?;
     let minterms = term_strings
         .iter()
