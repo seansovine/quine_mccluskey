@@ -138,6 +138,8 @@ impl BitVec {
 // ----------------------------------------
 // Functions implementing Petrick's method.
 
+const DEV_DEBUG: bool = false;
+
 /// Compute a minimal set of prime implicants from a prime implicant chart.
 pub fn get_minimal_sop_terms(
     mut prime_impl_chart: PrimeImplicateChart,
@@ -173,7 +175,12 @@ pub fn get_minimal_sop_terms(
         }
     }
 
-    let _ = BitVec::bitsort(&mut current_bitvecs);
+    let ones_group_start = BitVec::bitsort(&mut current_bitvecs);
+    if DEV_DEBUG {
+        println!("{:<7} - {ones_group_start:?}", current_bitvecs.len());
+        println!("# essential prime implicants: {}", min_expr_terms.len());
+    }
+
     let chosen_min_bitvec = current_bitvecs.first().unwrap();
     for i in chosen_min_bitvec.nonzero_indices() {
         min_expr_terms.push(prime_impls.get(i).unwrap().clone());
@@ -202,8 +209,6 @@ fn pairwise_and(current_bitvecs: &[BitVec], next_col_bitvecs: &[BitVec]) -> Vec<
     merged_bitvecs.dedup();
     merged_bitvecs
 }
-
-const DEV_DEBUG: bool = false;
 
 /// Remove bitvecs that are subsumed by others in the set.
 /// As a side effect, sorts the reduced `bitvecs`.

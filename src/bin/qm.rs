@@ -59,7 +59,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         minterms.len(),
         minterm_string
     );
-    println!("Don't cares:\n  {}", dont_care_string);
+    if !dont_care_string.is_empty() {
+        println!("Don't cares:\n  {}", dont_care_string);
+    }
 
     let mut prime_impls: Vec<Minterm> = get_prime_implicants(&minterms).into_iter().collect();
 
