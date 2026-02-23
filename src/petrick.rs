@@ -139,12 +139,84 @@ impl BitVec {
 // ----------------------------------------
 // Functions implementing Petrick's method.
 
-const DEV_DEBUG: bool = false;
+#[derive(Default)]
+pub struct PetrickParams {
+    pub parallel: bool,
+    pub dev_debug: bool,
+}
+
+pub fn get_minimal_sop_terms(
+    prime_impl_chart: PrimeImplicateChart,
+    prime_impls: Vec<Minterm>,
+    params: &PetrickParams,
+) -> Vec<Minterm> {
+    if params.parallel {
+        get_minimal_sop_terms_parallel(prime_impl_chart, prime_impls, params)
+    } else {
+        get_minimal_sop_terms_serial(prime_impl_chart, prime_impls, params)
+    }
+}
 
 /// Compute a minimal set of prime implicants from a prime implicant chart.
-pub fn get_minimal_sop_terms(
+pub fn get_minimal_sop_terms_serial(
     mut prime_impl_chart: PrimeImplicateChart,
     mut prime_impls: Vec<Minterm>,
+    params: &PetrickParams,
+) -> Vec<Minterm> {
+    assert!(prime_impls.len() == prime_impl_chart.rows.len());
+    if prime_impl_chart.rows.is_empty() || prime_impl_chart.rows.first().unwrap().is_empty() {
+        panic!("Prime implicant chart has either no rows or no columns.");
+    }
+    // This version currently supports at most 6 variables, but could be extended.
+    assert!(prime_impl_chart.rows.first().unwrap().len() <= 64);
+
+    // Remove essential prime implicants from chart.
+    let (mut min_expr_terms, remaining_cols) =
+        remove_essential_prime_impls(&mut prime_impl_chart, &mut prime_impls);
+    if remaining_cols.is_empty() {
+        // Indicates all prime impls were essential, so we're done.
+        return min_expr_terms;
+    }
+
+    let column_bitvecs = remaining_cols
+        .into_iter()
+        .map(|rem_col_i| BitVec::bitvecs_from_chart_col(&prime_impl_chart, rem_col_i))
+        .filter(|vecs| !vecs.is_empty())
+        .collect::<Vec<_>>();
+
+    // Simplify remaining terms with boolean logic rules.
+    let mut current_bitvecs: Vec<BitVec> = vec![BitVec::default()];
+    for (i, next_col_bitvecs) in column_bitvecs.iter().enumerate() {
+        current_bitvecs = pairwise_and(&current_bitvecs, next_col_bitvecs);
+        if i < column_bitvecs.len() - 1 {
+            remove_redundant(&mut current_bitvecs, params);
+        }
+    }
+
+    let ones_group_start = BitVec::bitsort(&mut current_bitvecs);
+    if params.dev_debug {
+        println!("Final expression set:");
+        println!("{:<7} - {ones_group_start:?}", current_bitvecs.len());
+        println!("# essential prime implicants: {}", min_expr_terms.len());
+    }
+
+    let chosen_min_bitvec = current_bitvecs.first().unwrap();
+    for i in chosen_min_bitvec.nonzero_indices() {
+        min_expr_terms.push(prime_impls.get(i).unwrap().clone());
+    }
+
+    min_expr_terms
+}
+
+/// Compute a minimal set of prime implicants from a prime implicant chart.
+///
+/// This version uses a parallel divide-and-conquer approach, which is faster
+/// for certain charts, but not for others.
+#[allow(unused)]
+pub fn get_minimal_sop_terms_parallel(
+    mut prime_impl_chart: PrimeImplicateChart,
+    mut prime_impls: Vec<Minterm>,
+    params: &PetrickParams,
 ) -> Vec<Minterm> {
     assert!(prime_impls.len() == prime_impl_chart.rows.len());
     if prime_impl_chart.rows.is_empty() || prime_impl_chart.rows.first().unwrap().is_empty() {
@@ -170,13 +242,17 @@ pub fn get_minimal_sop_terms(
     // Apply distributive property to column sets pairwise.
     while column_bitvecs.len() > 1 {
         let num_sets = column_bitvecs.len();
+        if params.dev_debug {
+            println!(">> Applying merge with {num_sets} sets.");
+        }
+
         column_bitvecs.par_chunks_mut(2).for_each(|chunk| {
             if chunk.len() == 1 {
                 return;
             }
             let mut updated = pairwise_and(&chunk[0], &chunk[1]);
             if num_sets > 2 {
-                remove_redundant(&mut updated);
+                remove_redundant(&mut updated, params);
             }
             chunk[0] = updated;
         });
@@ -189,7 +265,7 @@ pub fn get_minimal_sop_terms(
     let current_bitvecs = &mut column_bitvecs[0];
 
     let ones_group_start = BitVec::bitsort(current_bitvecs);
-    if DEV_DEBUG {
+    if params.dev_debug {
         println!("Final expression set:");
         println!(" {:<7} - {ones_group_start:?}", current_bitvecs.len());
         println!(" # essential prime implicants: {}", min_expr_terms.len());
@@ -228,13 +304,13 @@ fn pairwise_and(current_bitvecs: &[BitVec], next_col_bitvecs: &[BitVec]) -> Vec<
 /// As a side effect, sorts the reduced `bitvecs`.
 ///
 /// Precondition: `bitvecs` has been sorted and deduplicated.
-fn remove_redundant(bitvecs: &mut Vec<BitVec>) {
+fn remove_redundant(bitvecs: &mut Vec<BitVec>, params: &PetrickParams) {
     if bitvecs.is_empty() {
         return;
     }
 
     let ones_group_start = BitVec::bitsort(bitvecs);
-    if DEV_DEBUG {
+    if params.dev_debug {
         println!(
             "Merging on thread {}.\n {:<7} - {ones_group_start:?}",
             rayon::current_thread_index().unwrap_or_default(),

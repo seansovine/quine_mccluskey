@@ -1,11 +1,12 @@
 //! Run the QM algorithm and track time for each step, for optimization use.
 
-use clap::{Arg, Command};
+use clap::{Arg, ArgAction, Command};
 use std::{error::Error, time::Instant};
 
 use logic_minimization::{
     convert::binary_strings_from_init_hex,
     format::{display_sort_minterms, string_for_sop_minterms},
+    petrick::PetrickParams,
     *,
 };
 
@@ -18,9 +19,27 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .long("init")
                 .help("Optional init string; up to 16 hex chars."),
         )
+        .arg(
+            Arg::new("parallel")
+                .short('p')
+                .long("parallel")
+                .required(false)
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("debug")
+                .short('d')
+                .long("debug")
+                .required(false)
+                .action(ArgAction::SetTrue),
+        )
         .get_matches();
 
     let init = matches.get_one::<String>("init").unwrap();
+    let petrick_params = PetrickParams {
+        parallel: matches.get_flag("parallel"),
+        dev_debug: matches.get_flag("debug"),
+    };
 
     // Convert hex init string to minterms for simplification.
     let start_time = Instant::now();
@@ -48,9 +67,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let elapsed = start_time.elapsed().as_millis();
     println!("(*) {elapsed:>4} ms - Created prime implicant chart.");
 
+    if petrick_params.dev_debug {
+        println!();
+    }
     let start_time = Instant::now();
-    let mut minimal_sops = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
+    let mut minimal_sops =
+        petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls, &petrick_params);
     let elapsed = start_time.elapsed().as_millis();
+    if petrick_params.dev_debug {
+        println!();
+    }
     println!("(*) {elapsed:>4} ms - Simplified using Petrick's method.");
 
     display_sort_minterms(&mut minimal_sops);

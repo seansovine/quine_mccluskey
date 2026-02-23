@@ -6,7 +6,8 @@
 use logic_minimization::{
     Minterm, create_prime_implicant_chart,
     format::{FormattedExpr, display_sort_minterms, string_for_sop_minterms},
-    get_prime_implicants, petrick,
+    get_prime_implicants,
+    petrick::{self, PetrickParams},
 };
 
 fn main() {
@@ -39,7 +40,8 @@ fn main() {
     );
 
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, &minterms);
-    let mut minimal_sop_terms = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
+    let mut minimal_sop_terms =
+        petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls, &PetrickParams::default());
 
     display_sort_minterms(&mut minimal_sop_terms);
     println!(

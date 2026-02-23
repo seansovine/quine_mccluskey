@@ -7,6 +7,7 @@ use clap::{Arg, ArgAction, Command};
 use logic_minimization::{
     convert::{init_to_minterms, sop_to_minterms},
     format::{FormattedExpr, display_sort_minterms, string_for_sop_minterms},
+    petrick::PetrickParams,
     *,
 };
 
@@ -34,9 +35,27 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .required(false)
                 .action(ArgAction::SetTrue),
         )
+        .arg(
+            Arg::new("parallel")
+                .short('p')
+                .long("parallel")
+                .required(false)
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("debug")
+                .short('d')
+                .long("debug")
+                .required(false)
+                .action(ArgAction::SetTrue),
+        )
         .get_matches();
 
     let use_greedy = matches.get_flag("greedy");
+    let petrick_params = PetrickParams {
+        parallel: matches.get_flag("parallel"),
+        dev_debug: matches.get_flag("debug"),
+    };
     let mut minterms;
 
     if let Some(init) = matches.get_one::<String>("init") {
@@ -81,7 +100,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut minimal_sops = if use_greedy {
         greedy_min_sop::get_minimal_sops(prime_impl_chart, prime_impls)
     } else {
-        petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls)
+        if petrick_params.dev_debug {
+            println!();
+        }
+        petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls, &petrick_params)
     };
 
     display_sort_minterms(&mut minimal_sops);

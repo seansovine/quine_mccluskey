@@ -1,4 +1,4 @@
-// Implement Quine-McCluskey.
+//! Implement the Quine-McCluskey algorithm to simplify a boolean function.
 
 pub mod convert;
 pub mod format;
@@ -11,6 +11,7 @@ use std::{collections::HashSet, error::Error};
 use crate::{
     convert::binary_strings_from_init_hex,
     format::{FormattedExpr, display_sort_minterms, string_for_sop_minterms},
+    petrick::PetrickParams,
 };
 
 // ---------------------------
@@ -19,7 +20,8 @@ use crate::{
 pub fn qm_simplify(minterms: &[Minterm]) -> (String, usize) {
     let prime_impls: Vec<Minterm> = get_prime_implicants(minterms).into_iter().collect();
     let prime_impl_chart = create_prime_implicant_chart(&prime_impls, minterms);
-    let mut minimal_sops = petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls);
+    let mut minimal_sops =
+        petrick::get_minimal_sop_terms(prime_impl_chart, prime_impls, &PetrickParams::default());
     display_sort_minterms(&mut minimal_sops);
     let FormattedExpr {
         minterm_expr: sop_string,
